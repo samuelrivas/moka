@@ -58,7 +58,9 @@ defined(_) ->
 
 funct() ->
     Mod = dest_module(),
-    proper_types:elements([Fun || {Fun, _Arity } <- Mod:module_info(exports)]).
+    proper_types:elements(
+      [Fun || {Fun, _Arity } <- Mod:module_info(exports)
+                  , Fun /= module_info]).
 
 %%%===================================================================
 %%% Transitions
