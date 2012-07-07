@@ -63,6 +63,10 @@ replace(Moka, Module, Function, NewBehaviour) ->
 init(Mod) -> {ok, #state{mod = Mod}}.
 
 %% @private
+handle_call({replace, _Module, _Function, _NewBehaviour}, _From, State) ->
+    %% TODO
+    {reply, ok, State};
+
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 handle_call(Request, _From, State) ->

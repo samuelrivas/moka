@@ -37,9 +37,14 @@ weight(_,_,_) -> 1.
 precondition(_,_,_,_) -> true.
 
 
-%% Fall through to false to avoid false positives due to matching errors
-postcondition(_,_,_,_,_) ->
-    false.
+%% Try not to loose the postcondition too much or we might lose bugs
+%%
+%% Also, keep the last match-all clause falling through to false to avoid false
+%% positives due to matching errors
+postcondition(new, defined, _StateData, _Call, _Res) -> true;
+postcondition(defined, defined, _StateData, _Call, _Res) -> true;
+
+postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
 next_state_data(_From, _Target, State, _Call, _Res) -> State.
 
