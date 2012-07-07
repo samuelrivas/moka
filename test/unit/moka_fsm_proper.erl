@@ -8,7 +8,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -record(state, {
-          moka :: moka:moka() | undefined
+          replaced :: [{Fun::atom(), Arity::non_neg_integer()}]
          }).
 
 %%% FSM Callbacks
@@ -22,7 +22,7 @@
 -export([new/1, defined/1]).
 
 %%% Transitions
--export([]).
+-export([replace/3]).
 
 %%%===================================================================
 %%% FSM Callbacks
@@ -34,7 +34,7 @@ initial_state_data() -> #state{}.
 
 weight(_,_,_) -> 1.
 
-precondition(_,_,_,_) -> true.
+precondition(_From, _Target, _State, _Call) -> true.
 
 
 %% Try not to loose the postcondition too much or we might lose bugs
@@ -58,21 +58,29 @@ defined(_) ->
     [{defined, call_replace()}].
 
 call_replace() ->
-    {call, moka, replace, [{var, moka}, dest_module(), funct(), foo]}.
+    {call, ?MODULE, replace, [{var, moka}, dest_module(), funct_spec()]}.
 
 %%%===================================================================
 %%% Generators
 %%%===================================================================
 
-funct() ->
+funct_spec() ->
     Mod = dest_module(),
-    proper_types:elements(
-      [Fun || {Fun, _Arity } <- Mod:module_info(exports)
-                  , Fun /= module_info]).
+    RealFuncts =
+        [Funct || Funct = {Name, _Arity} <- Mod:module_info(exports)
+                      , Name /= module_info],
+
+    %% For now, you must modify this list manually if you modify the origin
+    %% module
+    FakeFuncts = [{unimplemented, 0}],
+
+    proper_types:elements(RealFuncts ++ FakeFuncts).
 
 %%%===================================================================
 %%% Transitions
 %%%===================================================================
+replace(Moka, Mod, {FunctName, Arity}) ->
+    moka:replace(Moka, Mod, FunctName, make_fun(Arity)).
 
 %%%===================================================================
 %%% Properties
@@ -103,3 +111,12 @@ report_error(H, S, R) ->
 origin_module() -> moka_test_origin_module.
 
 dest_module() -> moka_test_dest_module.
+
+%% We support only arities up to 3, you need to update this if you modify the
+%% destination module
+make_fun(N) when N =:= 0 -> fun() -> return_term(N) end;
+make_fun(N) when N =:= 1 -> fun(_) -> return_term(N) end;
+make_fun(N) when N =:= 2 -> fun(_, _) -> return_term(N) end;
+make_fun(N) when N =:= 3 -> fun(_, _, _) -> return_term(N) end.
+
+return_term(N) -> {moked_function_with_arity, N}.
