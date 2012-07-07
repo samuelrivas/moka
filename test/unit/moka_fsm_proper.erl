@@ -8,7 +8,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -record(state, {
-          moka :: moka:moka()
+          moka :: moka:moka() | undefined
          }).
 
 %%% FSM Callbacks
@@ -30,7 +30,7 @@
 
 initial_state() -> new.
 
-initial_state_data() -> #state{moka = moka:new(origin_module())}.
+initial_state_data() -> #state{}.
 
 weight(_,_,_) -> 1.
 
@@ -46,11 +46,11 @@ next_state_data(_From, _Target, State, _Call, _Res) -> State.
 %%%===================================================================
 %%% States
 %%%===================================================================
-new(#state{moka = Moka}) ->
-    [{defined, {call, moka, mock, [Moka, dest_module(), funct(), foo]}}].
+new(_) ->
+    [{defined, {call, moka, mock, [{var, moka}, dest_module(), funct(), foo]}}].
 
 defined(_) ->
-    [{defined, {call, learnerl, get_quiz, []}}].
+    [{defined, {call, foo, bar, []}}].
 
 %%%===================================================================
 %%% Generators
@@ -72,11 +72,15 @@ prop_moka_fsm() ->
        Cmds, proper_fsm:commands(?MODULE),
        ?TRAPEXIT(
           begin
-              Moka = moka:new(to_mock_module),
-              {H, S, R} =
-                  proper_fsm:run_commands(?MODULE, Cmds, [{moka, Moka}]),
+              Moka = moka:start(origin_module()),
+              try
+                  {H, S, R} =
+                      proper_fsm:run_commands(?MODULE, Cmds, [{moka, Moka}]),
 
-              ?WHENFAIL(report_error(H, S, R), R =:= ok)
+                  ?WHENFAIL(report_error(H, S, R), R =:= ok)
+              after
+                  moka:stop(Moka)
+              end
           end)).
 
 %%%===================================================================
