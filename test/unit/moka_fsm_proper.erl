@@ -47,10 +47,13 @@ next_state_data(_From, _Target, State, _Call, _Res) -> State.
 %%% States
 %%%===================================================================
 new(_) ->
-    [{defined, {call, moka, mock, [{var, moka}, dest_module(), funct(), foo]}}].
+    [{defined,call_replace()}].
 
 defined(_) ->
-    [{defined, {call, foo, bar, []}}].
+    [{defined, call_replace()}].
+
+call_replace() ->
+    {call, moka, replace, [{var, moka}, dest_module(), funct(), foo]}.
 
 %%%===================================================================
 %%% Generators
