@@ -1,0 +1,7 @@
+*~
+*.beam
+*.app
+doc/*.html
+doc/edoc-info
+doc/erlang.png
+doc/*.css
