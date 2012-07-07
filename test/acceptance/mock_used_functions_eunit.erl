@@ -9,8 +9,8 @@
 
 can_mock_read_write_test() ->
     Moka = moka:start(?MODULE),
-    moka:mock(Moka, file, read_file, fun(_) -> test_bin() end),
-    moka:mock(
+    moka:replace(Moka, file, read_file, fun(_) -> test_bin() end),
+    moka:replace(
       Moka, file, write_file,
       fun(_, B) ->
               check_equal(B, test_bin()),
