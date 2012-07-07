@@ -8,7 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 can_mock_read_write_test() ->
-    Moka = moka:new(?MODULE),
+    Moka = moka:start(?MODULE),
     moka:mock(Moka, file, read_file, fun(_) -> test_bin() end),
     moka:mock(
       Moka, file, write_file,
@@ -16,9 +16,10 @@ can_mock_read_write_test() ->
               check_equal(B, test_bin()),
               ok
       end),
-    moka:start(Moka),
+    moka:load(Moka),
     copy_file("/this/must/not/exist/anywhere", "/this/is/also/fake"),
-    moka:unload(Moka).
+    moka:unload(Moka), % Optional, done automatically when stop
+    moka:stop(Moka).
 
 %% We want to mock this function and check it works without writing to actual
 %% files
