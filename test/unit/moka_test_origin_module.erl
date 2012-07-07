@@ -4,6 +4,13 @@
 
 -module(moka_test_origin_module).
 
--export([read_file/1]).
+-export([sum/2, sum/3, square/1, unimplemented/0]).
 
-read_file(File) -> crashfy:untuple(file:read_file(File)).
+sum(A, B) -> moka_test_dest_module:sum(A, B).
+
+sum(A, B, C) -> moka_test_dest_module:sum(A, B, C).
+
+square(A) -> moka_test_dest_module:square(A).
+
+%% This calls a function that doesn't exist
+unimplemented() -> moka_test_dest_module:unimplemented().
