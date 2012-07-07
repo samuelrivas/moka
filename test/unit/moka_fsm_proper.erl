@@ -48,10 +48,11 @@ precondition(_From, _Target, _State, _Call) -> true.
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, loaded, _StateData, _Call, _Res) -> true;
-postcondition(_From, _Target, State, {call, _Mod, call, [_M, FunSpec]}, Res) ->
+postcondition(_From, _Target, State, {call, _Mod, call, [M, FunSpec]}, Res) ->
     case lists:member(FunSpec, State#state.replaced) of
         true ->
-            Res = properly_moked;
+            {F, Arity} = FunSpec,
+            Res == {moked, M, F, Arity};
         false ->
             expected_exception(Res)
     end;
@@ -108,7 +109,7 @@ get_exported(Mod) ->
 %%% Transitions
 %%%===================================================================
 replace(Moka, Mod, {FunctName, Arity}) ->
-    moka:replace(Moka, Mod, FunctName, make_fun(Arity)).
+    moka:replace(Moka, Mod, FunctName, make_fun(Mod, FunctName, Arity)).
 
 call(Module, {Funct, Arity}) ->
     try erlang:apply(Module, Funct, make_args(Arity))
@@ -143,14 +144,14 @@ origin_module() -> moka_test_origin_module.
 
 dest_module() -> moka_test_dest_module.
 
+make_fun(M, F, Arity) -> make_fun(Arity, {moked, M, F, Arity}).
+
 %% We support only arities up to 3, you need to update this if you modify the
 %% destination module
-make_fun(N) when N =:= 0 -> fun() -> return_term(N) end;
-make_fun(N) when N =:= 1 -> fun(_) -> return_term(N) end;
-make_fun(N) when N =:= 2 -> fun(_, _) -> return_term(N) end;
-make_fun(N) when N =:= 3 -> fun(_, _, _) -> return_term(N) end.
-
-return_term(N) -> {moked_function_with_arity, N}.
+make_fun(N, Return) when N =:= 0 -> fun() -> Return end;
+make_fun(N, Return) when N =:= 1 -> fun(_) -> Return end;
+make_fun(N, Return) when N =:= 2 -> fun(_, _) -> Return end;
+make_fun(N, Return) when N =:= 3 -> fun(_, _, _) -> Return end.
 
 get_fun_spec([_Moka, _Dest, FunSpec]) -> FunSpec;
 get_fun_spec([_Dest, FunSpec]) -> FunSpec.

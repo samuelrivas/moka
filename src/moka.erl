@@ -11,7 +11,7 @@
 %%% Exports
 %%%===================================================================
 %% API
--export([start/1, stop/1, replace/4]).
+-export([start/1, stop/1, replace/4, load/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -55,6 +55,14 @@ stop(Moka) -> sel_gen_server:call(Moka, stop).
 replace(Moka, Module, Function, NewBehaviour) ->
     sel_gen_server:call(Moka, {replace, Module, Function, NewBehaviour}).
 
+%% @doc Makes all substitutions effective
+%%
+%% The arity of `NewBehaviour' determines the arity of the substituted function
+%%
+%% @todo Errors when there are no calls to the substituted function
+-spec load(moka()) -> ok.
+load(Moka) -> sel_gen_server:call(Moka, load).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -67,8 +75,13 @@ handle_call({replace, _Module, _Function, _NewBehaviour}, _From, State) ->
     %% TODO
     {reply, ok, State};
 
+handle_call(load, _From, State) ->
+    %% TODO
+    {reply, ok, State};
+
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
+
 handle_call(Request, _From, State) ->
     {reply, {error, {bad_call, Request}}, State}.
 
