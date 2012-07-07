@@ -8,7 +8,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -record(state, {
-          replaced :: [{Fun::atom(), Arity::non_neg_integer()}]
+          replaced = [] :: [{Fun::atom(), Arity::non_neg_integer()}]
          }).
 
 %%% FSM Callbacks
@@ -34,6 +34,10 @@ initial_state_data() -> #state{}.
 
 weight(_,_,_) -> 1.
 
+%% TODO Specify the behaviour for repeated replaces in the same call spec
+precondition(_From, _Target, State, {call, _, replace, Args}) ->
+    not lists:member(get_fun_spec(Args), State#state.replaced);
+
 precondition(_From, _Target, _State, _Call) -> true.
 
 
@@ -46,16 +50,20 @@ postcondition(defined, defined, _StateData, _Call, _Res) -> true;
 
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
-next_state_data(_From, _Target, State, _Call, _Res) -> State.
+next_state_data(_From, _Target, State, _, {call, _, replace, Args}) ->
+    State#state{replaced = [get_fun_spec(Args) | State#state.replaced]};
+next_state_data(_From, _Target, State, _Res, _Call) ->
+    State.
 
 %%%===================================================================
 %%% States
 %%%===================================================================
 new(_) ->
-    [{defined,call_replace()}].
+    [{defined, call_replace()}].
 
 defined(_) ->
-    [{defined, call_replace()}].
+    [{defined, call_replace()}
+     , {defined, {call, io, format, ["noop~n"]}}].
 
 call_replace() ->
     {call, ?MODULE, replace, [{var, moka}, dest_module(), funct_spec()]}.
@@ -120,3 +128,5 @@ make_fun(N) when N =:= 2 -> fun(_, _) -> return_term(N) end;
 make_fun(N) when N =:= 3 -> fun(_, _, _) -> return_term(N) end.
 
 return_term(N) -> {moked_function_with_arity, N}.
+
+get_fun_spec([_Moka, _Dest, FunSpec]) -> FunSpec.
