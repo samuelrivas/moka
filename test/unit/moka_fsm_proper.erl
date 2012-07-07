@@ -19,7 +19,7 @@
 -export([prop_moka_fsm/0]).
 
 %%% FSM States
--export([new/1, defined/1]).
+-export([new/1, defined/1, loaded/1]).
 
 %%% Transitions
 -export([replace/3, call/2]).
@@ -47,6 +47,7 @@ precondition(_From, _Target, _State, _Call) -> true.
 %% positives due to matching errors
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
+postcondition(defined, loaded, _StateData, _Call, _Res) -> true;
 postcondition(_From, _Target, State, {call, _Mod, call, [_M, FunSpec]}, Res) ->
     case lists:member(FunSpec, State#state.replaced) of
         true ->
@@ -71,7 +72,11 @@ new(_) ->
 
 defined(_) ->
     [{defined, call_replace()}
-     , {defined, call_function()}].
+     , {defined, call_function()}
+     , {loaded, {call, moka, load, [{var, moka}]}}].
+
+loaded(_) ->
+    [{loaded, call_function()}].
 
 call_replace() ->
     {call, ?MODULE, replace, [{var, moka}, dest_module(), dest_funct_spec()]}.
@@ -124,7 +129,7 @@ prop_moka_fsm() ->
                   {H, S, R} =
                       proper_fsm:run_commands(?MODULE, Cmds, [{moka, Moka}]),
 
-                  ?WHENFAIL(report_error(H, S, R), R =:= ok)
+                  ?WHENFAIL(report_error(Cmds, H, S, R), R =:= ok)
               after
                   moka:stop(Moka)
               end
@@ -133,9 +138,6 @@ prop_moka_fsm() ->
 %%%===================================================================
 %%% Auxiliary functions
 %%%===================================================================
-
-report_error(H, S, R) ->
-    io:format("History: ~p\nState: ~p\nRes: ~p\n",[H,S,R]).
 
 origin_module() -> moka_test_origin_module.
 
@@ -158,3 +160,45 @@ make_args(N) -> lists:duplicate(N, fake_arg).
 expected_exception({exception, error, undef, _}) -> true;
 expected_exception({exception, error, {called, _Mod, _Line}, _}) -> true;
 expected_exception(_) -> false.
+
+%% TODO Move this to a generic library
+report_error(Cmds, H, S, R) ->
+    report_history_and_states(Cmds, H, S),
+    report_last_state(S),
+    report_result(R),
+    %% io:format("History: ~p\nState: ~p\nRes: ~p\n",[H,S,R]).
+    ok.
+
+report_history_and_states(Cmds, History, _States) ->
+    lists:foreach(
+      fun({Cmd, H}) -> pretty_print_step(Cmd, H) end,
+      sel_lists:cut_and_zip(Cmds, History)).
+
+pretty_print_step(Command, {{StateName, StateData}, Result}) ->
+    print_line(),
+    pretty_print_state(StateName, StateData),
+    pretty_print_command(Command, Result).
+
+pretty_print_state(StateName, StateData) ->
+    io:format(
+      "State     : ~p~n"
+      "State Data: ~p~n",
+      [StateName, StateData]).
+
+pretty_print_command({set, Var, {call, Mod, Fun, Args}}, Result) ->
+    io:format("~p=~p:~p(", [Var,Mod, Fun]),
+    io:format(
+      "~s) -> ~p~n",
+      [string:join([format("~p", [Arg]) || Arg <- Args], ","), Result]).
+
+format(Fmt, Args) -> lists:flatten(io_lib:format(Fmt, Args)).
+
+print_line() -> io:format("~s~n", [lists:duplicate(70, $-)]).
+
+report_last_state({StateName, StateData}) ->
+    print_line(),
+    pretty_print_state(StateName, StateData).
+
+report_result(R) ->
+    print_line(),
+    io:format("~p~n", [R]).
