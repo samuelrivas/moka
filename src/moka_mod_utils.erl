@@ -245,6 +245,7 @@ to_form(Term) -> erl_parse:abstract(Term).
 %% Terminal Forms
 walk_next(_Filter, Form = {attribute, _, _, _}) -> Form;
 walk_next(_Filter, Form = {atom, _, _}) -> Form;
+walk_next(_Filter, Form = {var, _, _}) -> Form;
 walk_next(_Filter, Form = {eof, _}) -> Form;
 
 %% Non Terminal Forms
