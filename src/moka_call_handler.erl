@@ -11,7 +11,7 @@
 %%% Exports
 %%%===================================================================
 %% API
--export([start_link/0, set_response_fun/2, get_response/2, stop/1]).
+-export([start_link/1, set_response_fun/2, get_response/2, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -26,19 +26,21 @@
          }).
 
 -type call_handler() :: pid().
+-type call_handler_ref() :: call_handler() | atom().
 
--export_type([call_handler/0]).
+-export_type([call_handler/0, call_handler_ref/0]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 %% @doc Starts a new call handler
--spec start_link() -> call_handler().
-start_link() -> crashfy:untuple(gen_server:start_link(?MODULE, [], [])).
+-spec start_link(atom()) -> call_handler().
+start_link(Name) ->
+    crashfy:untuple(gen_server:start_link({local, Name}, ?MODULE, [], [])).
 
 %% @doc Sets the fun used to create the response
--spec set_response_fun(call_handler(), fun()) -> ok.
+-spec set_response_fun(call_handler_ref(), fun()) -> ok.
 set_response_fun(CallHandler, Fun) when is_function(Fun) ->
     sel_gen_server:call(CallHandler, {set_response_fun, Fun}).
 
@@ -46,12 +48,12 @@ set_response_fun(CallHandler, Fun) when is_function(Fun) ->
 %%
 %% Moked modules call this function instead of the original destination
 %% function.
--spec get_response(call_handler(), [term()]) -> term().
+-spec get_response(call_handler_ref(), [term()]) -> term().
 get_response(CallHandler, Args) when is_list(Args) ->
     sel_gen_server:call(CallHandler, {get_response, Args}).
 
 %% @doc Terminates a call handler
--spec stop(call_handler()) -> ok.
+-spec stop(call_handler_ref()) -> ok.
 stop(CallHandler) -> sel_gen_server:call(CallHandler, stop).
 
 %%%===================================================================
