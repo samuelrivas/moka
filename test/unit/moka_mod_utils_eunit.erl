@@ -26,13 +26,9 @@ swap_forms_test_() ->
     Module1 = test_module(),
     Module2 = test_module2(),
     {setup,
-     fun() ->
-             Forms1 = moka_mod_utils:get_forms(Module1),
-             Forms2 = moka_mod_utils:get_forms(Module2),
-             {Forms1, Forms2}
-     end,
+     setup_get_forms([Module1, Module2]),
      fun(_) -> ok end,
-     fun({Forms1, Forms2}) ->
+     fun([Forms1, Forms2]) ->
              {inorder,
               [?_assertEqual({foo, bar}, {Module1:foo(), Module2:bar()})
                , ?_assertError(undef, Module1:bar())
@@ -50,6 +46,18 @@ swap_forms_test_() ->
               ]}
      end}.
 
+modify_remote_call_test_() ->
+    Module = test_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([Forms]) ->
+             {inorder,
+              [?_assertEqual(bar, Module:remote_bar())
+               , ?_test(moka_utils:load_forms(Module, modify_bar_call(Forms)))
+               , ?_assertEqual(node(), Module:remote_bar())]}
+     end}.
+
 %%%===================================================================
 %%% Internals
 %%%===================================================================
@@ -59,3 +67,19 @@ test_module2() -> moka_test_module2.
 
 %% We assume this module doesn't exist
 fake_module() -> moka_fake_mod.
+
+setup_get_forms(Modules) ->
+    fun() -> [moka_mod_utils:get_forms(M) || M <- Modules] end.
+
+cleanup_restore_modules(Modules) ->
+    fun(_) ->
+            lists:foreach(
+              fun(M) -> moka_mod_utils:restore_module(M) end,
+              Modules)
+    end.
+
+modify_bar_call(Forms) ->
+    moka_mod_utils:replace_remote_calls(
+      {test_module2(), bar, 0},
+      {erlang, node, []},
+      Forms).
