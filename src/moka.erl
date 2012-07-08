@@ -22,7 +22,8 @@
 %%% Types
 %%%===================================================================
 -record(state, {
-          mod :: module()
+          module        :: module(),
+          call_handlers :: [moka_call_handler:call_handler()]
          }).
 
 -type moka() :: pid().
@@ -68,22 +69,31 @@ load(Moka) -> sel_gen_server:call(Moka, load).
 %%%===================================================================
 
 %% @private
-init(Mod) -> {ok, #state{mod = Mod}}.
+init(Mod) -> {ok, #state{module = Mod}}.
 
 %% @private
-handle_call({replace, _Module, _Function, _NewBehaviour}, _From, State) ->
+handle_call(Request, From, State) ->
+    try
+        safe_handle_call(Request, From, State)
+    catch
+        Excpt ->
+            {reply, {error, Excpt}, State};
+        error:Reason ->
+            {stop, Reason, {error, {Reason, erlang:get_stacktrace()}}, State}
+    end.
+
+safe_handle_call({replace, _Module, _Function, _NewBehaviour}, _From, State) ->
+    {reply, ok, State};
+
+safe_handle_call(load, _From, State) ->
     %% TODO
     {reply, ok, State};
 
-handle_call(load, _From, State) ->
-    %% TODO
-    {reply, ok, State};
-
-handle_call(stop, _From, State) ->
+safe_handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 
-handle_call(Request, _From, State) ->
-    {reply, {error, {bad_call, Request}}, State}.
+safe_handle_call(Request, _From, _State) ->
+    throw({bad_call, Request}).
 
 %% @private
 handle_cast(_Msg, State) -> {noreply, State}.
