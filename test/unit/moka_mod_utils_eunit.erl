@@ -41,6 +41,9 @@ swap_forms_test_() ->
                , ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()})
                , ?_assertError(undef, Module2:bar())
                , ?_assertError(undef, Module1:foo())
+
+               , ?_assertEqual(ok, moka_mod_utils:restore_module(Module1))
+               , ?_assertEqual(ok, moka_mod_utils:restore_module(Module2))
               ]}
      end}.
 
