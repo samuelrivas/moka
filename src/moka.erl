@@ -22,9 +22,9 @@
 %%% Types
 %%%===================================================================
 -record(state, {
-          module        :: module(),
-          abs_code      :: moka_mod_handler:abstract_code(),
-          call_handlers :: [moka_call_handler:call_handler()]
+          module        :: module() | undefined,
+          abs_code      :: moka_mod_handler:abstract_code() | undefined,
+          call_handlers = [] :: [moka_call_handler:call_handler()]
          }).
 
 -type moka() :: pid().
@@ -77,7 +77,7 @@ init(Mod) ->
            abs_code = moka_mod_utils:get_abs_code(Mod)
           }}
     catch
-        Excpt -> {stop, Excpt}
+        Excpt -> {stop, {Excpt, erlang:get_stacktrace()}}
     end.
 
 %% @private
@@ -88,23 +88,25 @@ handle_call(Request, From, State) ->
         Excpt ->
             {reply, {error, Excpt}, State};
         error:Reason ->
-            {stop, Reason, {error, {Reason, erlang:get_stacktrace()}}, State}
+            Error = {Reason, erlang:get_stacktrace()},
+            {stop, Error, {error, Error}, State}
     end.
 
 %% FIXME We need to pass the original args, we must fix moka_mod_utils for this
 %% FIXME This function is ugly, refactor
 safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
-    Handler = moka_call_handler:start_link(),
-    moka_call_handler:set_response_fun(Handler, NewBehaviour),
+    HandlerName = call_handler_name(State),
+    moka_call_handler:start_link(HandlerName),
+    moka_call_handler:set_response_fun(HandlerName, NewBehaviour),
     NewCode =
         moka_mod_utils:replace_remote_calls(
           {Module, Function, Arity},
-          {moka_call_handler, get_response, fake_args(Arity)},
+          {moka_call_handler, get_response, [HandlerName, '$args']},
           State#state.abs_code),
     {reply, ok,
      State#state{
-       call_handlers = [Handler | State#state.call_handlers],
+       call_handlers = [HandlerName | State#state.call_handlers],
        abs_code = NewCode}};
 
 safe_handle_call(load, _From, State) ->
@@ -134,4 +136,6 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-fake_args(Arity) -> lists:duplicate(Arity, fake_arg).
+call_handler_name(#state{module = Module, call_handlers = Handlers}) ->
+    list_to_atom(
+      lists:flatten(io_lib:format("~p_~p", [Module, length(Handlers)]))).
