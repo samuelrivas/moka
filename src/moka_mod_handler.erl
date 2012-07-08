@@ -63,23 +63,3 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-get_module_object_code(Mod) ->
-    case code:get_object_code(Mod) of
-        {_Mod, Code, _File} -> Code;
-        error -> throw({cannot_get_object_code, Mod})
-    end.
-
-get_object_code_forms(Code) ->
-    case beam_lib:chunks(Code, [abstract_code]) of
-        {ok, {_Mod, Result}} -> get_abstract_code_forms(Result);
-        {error, beam_lib, Reason} -> throw({cannot_get_abstract_code, Reason})
-    end.
-
-get_abstract_code_forms([{abstract_code, {Version, Forms}}]) ->
-    check_abs_vsn(Version),
-    Forms;
-get_abstract_code_forms([{abstract_code, no_abstract_code}]) ->
-    throw(no_abstract_code).
-
-check_abs_vsn(raw_abstract_v1) -> ok;
-check_abs_vsn(Other) -> throw({unsupported_abstract_code_version, Other}).
