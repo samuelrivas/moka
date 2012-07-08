@@ -11,9 +11,11 @@
 
 -module(moka_mod_utils).
 
--export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1]).
+-export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1,
+         replace_remote_calls/3]).
 
 -type forms() :: [erl_parse:abstract_form()].
+-type remote_call() :: {module(), atom(), [term()]}.
 
 %%%===================================================================
 %%% API
@@ -75,6 +77,36 @@ load_forms(Module, Forms) ->
 restore_module(Module) ->
     unload(Module),
     handle_load_result(Module, code:load_file(Module)).
+
+%% @doc Replaces external function calls in `Forms'
+%%
+%%
+%%
+%% @throws {processes_using_old_code, Module}
+%%       | {cannot_load_code, {Module, Reason}}
+-define(atom_match(Atom), {atom, _, Atom}).
+
+-define(remote_call_match(Mod, Fun),
+        {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}}).
+
+-spec replace_remote_calls(mfa(), remote_call(), forms()) -> ok.
+replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
+    walk_and_filter(
+      fun(Call) ->
+              case Call of
+                  ?remote_call_match(OldMod, OldFun) ->
+                      replace_if_arity_match(Call, Arity, NewCall);
+                  _ ->
+                      {no_match}
+              end
+      end,
+      Forms).
+
+replace_if_arity_match(Call, Arity, NewCall = {_, _, Args}) ->
+    case length(Args) =:= Arity of
+        true -> NewCall; %% FIXME form-alise this
+        false -> Call
+    end.
 
 %%%===================================================================
 %%% Private Functions
@@ -152,3 +184,20 @@ delete(Module) ->
             %% This is either a bug or a concurrency problem
             erlang:error({cannot_delete_code, Module})
     end.
+
+walk_and_filter(_Filter, []) ->
+    [];
+walk_and_filter(Filter, [H | T]) ->
+    [step(Filter, H) | walk_and_filter(Filter, T)].
+
+step(Filter, Form) ->
+    %% NOTE We wrap no_match in a tuple as no_match would be a valid form
+    case Filter(Form) of
+        {no_match} ->
+            walk_next(Filter, Form);
+        NewForm ->
+            NewForm
+    end.
+
+walk_next(_Filter, Form) ->
+    Form.
