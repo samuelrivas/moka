@@ -54,7 +54,10 @@ modify_remote_call_test_() ->
      fun([Forms]) ->
              {inorder,
               [?_assertEqual(bar, Module:remote_bar())
-               , ?_test(moka_utils:load_forms(Module, modify_bar_call(Forms)))
+
+               , ?_test(moka_mod_utils:load_forms(
+                          Module, modify_bar_call(Forms)))
+
                , ?_assertEqual(node(), Module:remote_bar())]}
      end}.
 
