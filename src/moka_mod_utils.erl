@@ -91,7 +91,7 @@ to_str(Forms) -> erl_prettypr:format(erl_syntax:form_list(Forms)).
 -define(atom_match(Atom), {atom, _, Atom}).
 
 -define(remote_call_match(Mod, Fun),
-        {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}}).
+        {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}, _}).
 
 -spec replace_remote_calls(mfa(), remote_call(), forms()) -> ok.
 replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
