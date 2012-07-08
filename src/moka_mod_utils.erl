@@ -2,13 +2,26 @@
 
 -module(moka_mod_utils).
 
--export([get_forms/1]).
+-export([get_object_code/1, get_forms/1]).
 
 -type forms() :: [erl_parse:abstract_form()].
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%% @doc Returns the object code of a loadable module
+%%
+%% Independently of whether the module is loaded, this function fails if the
+%% object module be loaded (i.e. if the beam file is not int the load path)
+%%
+%% @throws {cannot_get_object_code, Module}
+-spec get_object_code(module()) -> binary().
+get_object_code(Module) ->
+    case code:get_object_code(Module) of
+        {_Mod, Code, _File} -> Code;
+        error -> throw({cannot_get_object_code, Module})
+    end.
 
 %% @doc Returns the abstract form of a loadable module
 %%
@@ -21,7 +34,7 @@
 %%
 %% @throws no_abstract_code
 %%  | {cannot_get_object, module()}
--spec get_forms(module) -> forms().
+-spec get_forms(module()) -> forms().
 get_forms(Module) ->
     ObjectCode = get_module_object_code(Module),
     get_object_code_forms(ObjectCode).
