@@ -17,6 +17,13 @@ it.
 As a drawback, Moka needs the module under test source code, so it must have
 been compiled with debug info.
 
+The current status is shaky, in fact it still doesn't work. However the first
+two days of development (during SpawnFest 2012) we focused on quality and a good
+bakcing test suite, so the code is in good shape and is almost flying. The
+acceptance tests are quite close to pass, once we save a technicality with the
+call handler (we made it anonymous, but now we realised we cannot embed pids in
+the source code ...)
+
 # Acknowledgements
 
 Special thanks to Diana Parra Corbacho as she had the original idea of using
