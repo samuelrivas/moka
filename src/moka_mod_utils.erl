@@ -97,7 +97,7 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
                   ?remote_call_match(OldMod, OldFun) ->
                       replace_if_arity_match(Call, Arity, NewCall);
                   _ ->
-                      {no_match}
+                      no_match
               end
       end,
       Forms).
@@ -188,16 +188,39 @@ delete(Module) ->
 walk_and_filter(_Filter, []) ->
     [];
 walk_and_filter(Filter, [H | T]) ->
-    [step(Filter, H) | walk_and_filter(Filter, T)].
+    [step(Filter, H) | walk_and_filter(Filter, T)];
+walk_and_filter(Filter, Form) ->
+    step(Filter, Form).
 
 step(Filter, Form) ->
-    %% NOTE We wrap no_match in a tuple as no_match would be a valid form
     case Filter(Form) of
-        {no_match} ->
-            walk_next(Filter, Form);
-        NewForm ->
-            NewForm
+        no_match -> walk_next(Filter, Form);
+        NewForm -> NewForm
     end.
 
-walk_next(_Filter, Form) ->
-    Form.
+%% Keep this function from default matching, We want to know when something
+%% unsupported slips through for now.
+%%
+%% A decent quickcheck test might help to avoid this
+
+%% Terminal Forms
+walk_next(_Filter, Form = {attribute, _, _, _}) -> Form;
+walk_next(_Filter, Form = {atom, _, _}) -> Form;
+walk_next(_Filter, Form = {eof, _}) -> Form;
+
+%% Non Terminal Forms
+walk_next(Filter, {function, Line, Name, Arity, Body}) ->
+    {function, Line, Name, Arity, walk_and_filter(Filter, Body)};
+walk_next(Filter, {remote, Line, Left, Right}) ->
+    {remote, Line,
+     walk_and_filter(Filter, Left),
+     walk_and_filter(Filter, Right)};
+walk_next(Filter, {clause, Line, Pattern, Guards, Body}) ->
+    {clause, Line,
+     walk_and_filter(Filter, Pattern),
+     walk_and_filter(Filter, Guards),
+     walk_and_filter(Filter, Body)};
+walk_next(Filter, {call, Line, Body, Args}) ->
+    {call, Line,
+     walk_and_filter(Filter, Body),
+     walk_and_filter(Filter, Args)}.
