@@ -108,10 +108,12 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
        abs_code = NewCode}};
 
 safe_handle_call(load, _From, State) ->
-    %% TODO
+    moka_mod_utils:load_abs_code(State#state.module, State#state.abs_code),
     {reply, ok, State};
 
+%% FIXME the module should be restored in the terminate
 safe_handle_call(stop, _From, State) ->
+    moka_mod_utils:restore_module(State#state.module),
     {stop, normal, ok, State};
 
 safe_handle_call(Request, _From, _State) ->
