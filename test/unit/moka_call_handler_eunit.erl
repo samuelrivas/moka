@@ -7,7 +7,7 @@
 call_handler_test_() ->
     {setup,
      fun() ->
-             {ok, Handler} = moka_call_handler:start_link(),
+             Handler = moka_call_handler:start_link(),
              moka_call_handler:set_response_fun(Handler, fun(X,Y) -> X * Y end),
              Handler
      end,

@@ -34,8 +34,8 @@
 %%%===================================================================
 
 %% @doc Starts a new call handler
--spec start_link() -> {ok, call_handler()} | ignore | {error, term()}.
-start_link() -> gen_server:start_link(?MODULE, [], []).
+-spec start_link() -> call_handler().
+start_link() -> crashfy:untuple(gen_server:start_link(?MODULE, [], [])).
 
 %% @doc Sets the fun used to create the response
 -spec set_response_fun(call_handler(), fun()) -> ok.
