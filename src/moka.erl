@@ -91,8 +91,21 @@ handle_call(Request, From, State) ->
             {stop, Reason, {error, {Reason, erlang:get_stacktrace()}}, State}
     end.
 
-safe_handle_call({replace, _Module, _Function, _NewBehaviour}, _From, State) ->
-    {reply, ok, State};
+%% FIXME We need to pass the original args, we must fix moka_mod_utils for this
+%% FIXME This function is ugly, refactor
+safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
+    {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
+    Handler = moka_call_handler:start_link(),
+    moka_call_handler:set_response_fun(Handler, NewBehaviour),
+    NewCode =
+        moka_mod_utils:replace_remote_calls(
+          {Module, Function, Arity},
+          {moka_call_handler, get_response, fake_args(Arity)},
+          State#state.abs_code),
+    {reply, ok,
+     State#state{
+       call_handlers = [Handler | State#state.call_handlers],
+       abs_code = NewCode}};
 
 safe_handle_call(load, _From, State) ->
     %% TODO
@@ -119,3 +132,4 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+fake_args(Arity) -> lists:duplicate(Arity, fake_arg).
