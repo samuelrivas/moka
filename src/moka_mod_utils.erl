@@ -25,29 +25,23 @@ get_object_code(Module) ->
 
 %% @doc Returns the abstract form of a loadable module
 %%
-%% This function throws `no_abstract_code' when the module binary does not
-%% contain an `abstract_code' chunk. This is usually because the module was not
-%% compiled with `debug_info' or because it was stripped afterwards.
+%% This function throws `{no_abstract_code, Module}' when the module binary does
+%% not contain an `abstract_code' chunk. This is usually because the module was
+%% not compiled with `debug_info' or because it was stripped afterwards.
 %%
 %% It also throws `{cannot_get_object, Module}' if `Module' is not a loadable
 %% erlang module (e.g. the name is misspelled, or the code is not compiled).
 %%
-%% @throws no_abstract_code
+%% @throws {no_abstract_code, module()
 %%  | {cannot_get_object, module()}
 -spec get_forms(module()) -> forms().
 get_forms(Module) ->
-    ObjectCode = get_module_object_code(Module),
+    ObjectCode = get_object_code(Module),
     get_object_code_forms(ObjectCode).
 
 %%%===================================================================
 %%% Private Functions
 %%%===================================================================
-get_module_object_code(Mod) ->
-    case code:get_object_code(Mod) of
-        {_Mod, Code, _File} -> Code;
-        error -> throw({cannot_get_object_code, Mod})
-    end.
-
 get_object_code_forms(Code) ->
     case beam_lib:chunks(Code, [abstract_code]) of
         {ok, {_Mod, Result}} -> get_abstract_code_forms(Result);
