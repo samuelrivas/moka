@@ -95,15 +95,20 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 
 %% @doc Replaces external function calls in `AbsCode'
 %%
+%% An element `$args' in the `Args' list of the `remote_call()' is replaced
+%% by the arguments in the old call.
+%%
 %% For example, if `AbsCode' represents a module `my_mod' containing next code:
 %% ```
 %% foo() ->
-%%    other_module:bar().
+%%    ...
+%%    other_module:bar(X).
 %% '''
-%% Next call will change `other_module:bar()' by `io:format("Hi there~n")':
+%% Next call will change `other_module:bar()' by
+%% `io:format("Args: ~p~n", [X])':
 %% ```
 %% moka_mod_utils:replace_remote_calls(
-%%    {other_module, bar, 0}, {io, format, ["Hi there~n"]}, Forms)
+%%    {other_module, bar, 0}, {io, format, ["Args: ~p~n", '$args']}, Forms)
 %% '''
 %%
 %% @throws {processes_using_old_code, Module}
@@ -130,9 +135,9 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
       end,
       AbsCode).
 
-replace_if_arity_match(Call, Arity, NewCall) ->
+replace_if_arity_match(Call = {call, _, _, OldArgs}, Arity, NewCall) ->
     case call_arity(Call) of
-        Arity -> remote_call_form(NewCall);
+        Arity -> remote_call_form(NewCall, OldArgs);
         _Other -> Call
     end.
 
@@ -228,11 +233,17 @@ step(Filter, Form) ->
 
 call_arity({call, _Line, _Left, Args}) -> length(Args).
 
-remote_call_form({Module, Function, Args}) ->
+remote_call_form({Module, Function, Args}, OldArgs) ->
     {call, 0, {remote, 0, to_form(Module), to_form(Function)},
-     [to_form(X) || X <- Args]}.
+     [args_to_form(X, OldArgs) || X <- Args]}.
 
 to_form(Term) -> erl_parse:abstract(Term).
+
+args_to_form('$args', OldArgs) -> make_form_list(OldArgs);
+args_to_form(Arg, _) -> to_form(Arg).
+
+make_form_list([]) -> erl_parse:abstract([]);
+make_form_list([H | T]) -> {cons, 0, H, make_form_list(T)}.
 
 %%%-------------------------------------------------------------------
 %%% Functions to walk the forms list
@@ -245,6 +256,7 @@ to_form(Term) -> erl_parse:abstract(Term).
 %% Terminal Forms
 walk_next(_Filter, Form = {attribute, _, _, _}) -> Form;
 walk_next(_Filter, Form = {atom, _, _}) -> Form;
+walk_next(_Filter, Form = {integer, _, _}) -> Form;
 walk_next(_Filter, Form = {var, _, _}) -> Form;
 walk_next(_Filter, Form = {eof, _}) -> Form;
 
