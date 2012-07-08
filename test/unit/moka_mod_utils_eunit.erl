@@ -30,14 +30,14 @@ swap_forms_test_() ->
     {setup,
      setup_get_forms([Module1, Module2]),
      fun(_) -> ok end,
-     fun([Forms1, Forms2]) ->
+     fun([AbsCode1, AbsCode2]) ->
              {inorder,
               [?_assertEqual({foo, bar}, {Module1:foo(), Module2:bar()})
                , ?_assertError(undef, Module1:bar())
                , ?_assertError(undef, Module2:foo())
 
-               , ?_test(moka_mod_utils:load_abs_code(Module1, Forms2))
-               , ?_test(moka_mod_utils:load_abs_code(Module2, Forms1))
+               , ?_test(moka_mod_utils:load_abs_code(Module1, AbsCode2))
+               , ?_test(moka_mod_utils:load_abs_code(Module2, AbsCode1))
 
                , ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()})
                , ?_assertError(undef, Module2:bar())
@@ -53,12 +53,12 @@ modify_remote_call_test_() ->
     {setup,
      setup_get_forms([Module]),
      cleanup_restore_modules([Module]),
-     fun([Forms]) ->
+     fun([AbsCode]) ->
              {inorder,
               [?_assertEqual(bar, Module:remote_bar())
 
                , ?_test(moka_mod_utils:load_abs_code(
-                          Module, modify_bar_call(Forms)))
+                          Module, modify_bar_call(AbsCode)))
 
                , ?_assertEqual(node(), Module:remote_bar())]}
      end}.
@@ -69,12 +69,12 @@ modify_remote_call_with_args_test_() ->
     {setup,
      setup_get_forms([Module]),
      cleanup_restore_modules([Module]),
-     fun([Forms]) ->
+     fun([AbsCode]) ->
              {inorder,
               [?_assertEqual(6, Module:remote_mult(2))
 
                , ?_test(moka_mod_utils:load_abs_code(
-                          Module, modify_mult_call(Forms)))
+                          Module, modify_mult_call(AbsCode)))
 
                , ?_assertEqual({factors, 2, 3}, Module:remote_mult(2))]}
      end}.
@@ -99,17 +99,17 @@ cleanup_restore_modules(Modules) ->
               Modules)
     end.
 
-modify_bar_call(Forms) ->
+modify_bar_call(AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {test_module2(), bar, 0},
       {erlang, node},
-      Forms).
+      AbsCode).
 
-modify_mult_call(Forms) ->
+modify_mult_call(AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {test_module2(), mult, 2},
       {?MODULE, hook_in},
-      Forms).
+      AbsCode).
 
 %% We inject this function in some tests
 hook_in(A, B) -> {factors, A, B}.
