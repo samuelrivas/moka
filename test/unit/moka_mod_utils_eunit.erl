@@ -38,7 +38,7 @@ swap_forms_test_() ->
                , ?_test(moka_mod_utils:load_forms(Module1, Forms2))
                , ?_test(moka_mod_utils:load_forms(Module2, Forms1))
 
-               , ?_assertEqual({bar, foo}, {Module1:foo(), Module2:bar()})
+               , ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()})
                , ?_assertError(undef, Module2:bar())
                , ?_assertError(undef, Module1:foo())
               ]}
