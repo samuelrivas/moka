@@ -23,6 +23,7 @@
 %%%===================================================================
 -record(state, {
           module        :: module(),
+          abs_code      :: moka_mod_handler:abstract_code(),
           call_handlers :: [moka_call_handler:call_handler()]
          }).
 
@@ -69,7 +70,15 @@ load(Moka) -> sel_gen_server:call(Moka, load).
 %%%===================================================================
 
 %% @private
-init(Mod) -> {ok, #state{module = Mod}}.
+init(Mod) ->
+    try
+        {ok, #state{
+           module = Mod,
+           abs_code = moka_mod_utils:get_abs_code(Mod)
+          }}
+    catch
+        Excpt -> {stop, Excpt}
+    end.
 
 %% @private
 handle_call(Request, From, State) ->
