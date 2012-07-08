@@ -7,6 +7,9 @@
 %%% debug situations. If you see these failures, find the reason there are
 %%% processes dangling with old code and fix it.
 %%%
+%%% Current representation of the code is a list of `erl_parse:form()' terms,
+%%% but that is subject to change in the future
+%%%
 %%% @see code
 
 %%% TODO Maybe handing abstract trees (the ones handled by erl_syntax) is easier
@@ -16,11 +19,14 @@
 %%% don't support all forms ...
 -module(moka_mod_utils).
 
--export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1,
+-export([get_object_code/1, get_abs_code/1, load_forms/2, restore_module/1,
          replace_remote_calls/3, to_str/1]).
 
--type forms() :: [erl_parse:abstract_form()].
--type remote_call() :: {module(), atom(), [term()]}.
+-type forms()           :: [erl_parse:abstract_form()].
+-type remote_call()     :: {module(), atom(), [term()]}.
+-opaque abstract_code() :: forms().
+
+-export_type([abstract_code/0]).
 
 %%%===================================================================
 %%% API
@@ -51,8 +57,8 @@ get_object_code(Module) ->
 %%
 %% @throws {no_abstract_code, module()}
 %%       | {cannot_get_object, module()}
--spec get_forms(module()) -> forms().
-get_forms(Module) ->
+-spec get_abs_code(module()) -> abstract_code().
+get_abs_code(Module) ->
     ObjectCode = get_object_code(Module),
     get_object_code_forms(ObjectCode).
 
@@ -67,9 +73,9 @@ get_forms(Module) ->
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--spec load_forms(module(), forms()) -> ok.
-load_forms(Module, Forms) ->
-    Code = compile_forms(set_module_name(Module, Forms)),
+-spec load_forms(module(), abstract_code()) -> ok.
+load_forms(Module, AbsCode) ->
+    Code = compile_forms(set_module_name(Module, AbsCode)),
     load_new_code(Module, Code).
 
 %% @doc Restores the original module behaviour.
@@ -83,13 +89,13 @@ restore_module(Module) ->
     unload(Module),
     handle_load_result(Module, code:load_file(Module)).
 
-%% @doc Returns a pretty printed version of `Forms'
--spec to_str(forms()) -> iolist().
-to_str(Forms) -> erl_prettypr:format(erl_syntax:form_list(Forms)).
+%% @doc Returns a pretty printed version of `AbsCode'
+-spec to_str(abstract_code()) -> iolist().
+to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 
-%% @doc Replaces external function calls in `Forms'
+%% @doc Replaces external function calls in `AbsCode'
 %%
-%% For example, if `Forms' represents a module `my_mod' containing next code:
+%% For example, if `AbsCode' represents a module `my_mod' containing next code:
 %% ```
 %% foo() ->
 %%    other_module:bar().
@@ -109,8 +115,10 @@ to_str(Forms) -> erl_prettypr:format(erl_syntax:form_list(Forms)).
 -define(remote_call_match(Mod, Fun),
         {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}, _}).
 
--spec replace_remote_calls(mfa(), remote_call(), forms()) -> ok.
-replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
+%% FIXME Dialyzer complains about the return type
+-spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
+                                  abstract_code().
+replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
     walk_and_filter(
       fun(Call) ->
               case Call of
@@ -120,7 +128,7 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
                       no_match
               end
       end,
-      Forms).
+      AbsCode).
 
 replace_if_arity_match(Call, Arity, NewCall) ->
     case call_arity(Call) of

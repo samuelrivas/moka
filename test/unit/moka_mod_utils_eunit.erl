@@ -11,12 +11,12 @@ get_beam_code_test_() ->
           {cannot_get_object_code, FakeModule},
           moka_mod_utils:get_object_code(FakeModule))].
 
-get_forms_test_() ->
+get_abs_code_test_() ->
     FakeModule = fake_module(),
-    [?_assert(is_list(moka_mod_utils:get_forms(test_module())))
+    [?_assert(is_list(moka_mod_utils:get_abs_code(test_module())))
      , ?_assertThrow(
           {cannot_get_object_code, FakeModule},
-          moka_mod_utils:get_forms(FakeModule))
+          moka_mod_utils:get_abs_code(FakeModule))
     ].
 
 %% This test is mainly to verify the possibility of loading new code. Further
@@ -72,7 +72,7 @@ test_module2() -> moka_test_module2.
 fake_module() -> moka_fake_mod.
 
 setup_get_forms(Modules) ->
-    fun() -> [moka_mod_utils:get_forms(M) || M <- Modules] end.
+    fun() -> [moka_mod_utils:get_abs_code(M) || M <- Modules] end.
 
 cleanup_restore_modules(Modules) ->
     fun(_) ->
