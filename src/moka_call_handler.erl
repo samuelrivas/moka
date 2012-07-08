@@ -1,7 +1,7 @@
-%%% @doc Simulate the calls to mocked functions
+%%% @doc Simulate the calls to Moked functions
 %%%
-%%% Mocked functions will be redirected to a call handler that will hold the
-%%% specifications coming from {@link mocka} calls.
+%%% Moked functions will be redirected to a call handler that will hold the
+%%% specifications coming from {@link moka} calls.
 
 -module(moka_call_handler).
 
@@ -44,7 +44,7 @@ set_response_fun(CallHandler, Fun) when is_function(Fun) ->
 
 %% @doc Gets the response for a call
 %%
-%% Mocked modules call this function instead of the original destination
+%% Moked modules call this function instead of the original destination
 %% function.
 -spec get_response(call_handler(), [term()]) -> term().
 get_response(CallHandler, Args) when is_list(Args) ->
