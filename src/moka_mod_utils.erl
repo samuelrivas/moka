@@ -12,7 +12,7 @@
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1,
-         replace_remote_calls/3]).
+         replace_remote_calls/3, to_str/1]).
 
 -type forms() :: [erl_parse:abstract_form()].
 -type remote_call() :: {module(), atom(), [term()]}.
@@ -77,6 +77,10 @@ load_forms(Module, Forms) ->
 restore_module(Module) ->
     unload(Module),
     handle_load_result(Module, code:load_file(Module)).
+
+%% @doc Returns a pretty printed version of `Forms'
+-spec to_str(forms()) -> iolist().
+to_str(Forms) -> erl_prettypr:format(erl_syntax:form_list(Forms)).
 
 %% @doc Replaces external function calls in `Forms'
 %%
