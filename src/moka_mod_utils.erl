@@ -9,6 +9,11 @@
 %%%
 %%% @see code
 
+%%% TODO Maybe handing abstract trees (the ones handled by erl_syntax) is easier
+%%% than handling the Forms list. At least it seems there is an easy way of
+%%% traversing the abstract tree with erl_syntax_lib:fold. Needs some
+%%% investigation as the form traversing code is already somewhat tricky and we
+%%% don't support all forms ...
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1,
@@ -84,12 +89,21 @@ to_str(Forms) -> erl_prettypr:format(erl_syntax:form_list(Forms)).
 
 %% @doc Replaces external function calls in `Forms'
 %%
-%%
+%% For example, if `Forms' represents a module `my_mod' containing next code:
+%% ```
+%% foo() ->
+%%    other_module:bar().
+%% '''
+%% Next call will change `other_module:bar()' by `io:format("Hi there~n")':
+%% ```
+%% moka_mod_utils:replace_remote_calls(
+%%    {other_module, bar, 0}, {io, format, ["Hi there~n"]}, Forms)
+%% '''
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--define(atom_match(Atom), {atom, _, Atom}).
 
+-define(atom_match(Atom), {atom, _, Atom}).
 -define(remote_call_match(Mod, Fun),
         {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}, _}).
 
@@ -106,10 +120,10 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
       end,
       Forms).
 
-replace_if_arity_match(Call, Arity, NewCall = {_, _, Args}) ->
-    case length(Args) =:= Arity of
-        true -> NewCall; %% FIXME form-alise this
-        false -> Call
+replace_if_arity_match(Call, Arity, NewCall) ->
+    case call_arity(Call) of
+        Arity -> remote_call_form(NewCall);
+        _Other -> Call
     end.
 
 %%%===================================================================
@@ -202,6 +216,17 @@ step(Filter, Form) ->
         NewForm -> NewForm
     end.
 
+call_arity({call, _Line, _Left, Args}) -> length(Args).
+
+remote_call_form({Module, Function, Args}) ->
+    {call, 0, {remote, 0, to_form(Module), to_form(Function)},
+     [to_form(X) || X <- Args]}.
+
+to_form(Term) -> erl_parse:abstract(Term).
+
+%%%-------------------------------------------------------------------
+%%% Functions to walk the forms list
+%%%-------------------------------------------------------------------
 %% Keep this function from default matching, We want to know when something
 %% unsupported slips through for now.
 %%
