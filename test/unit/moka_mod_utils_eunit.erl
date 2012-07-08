@@ -102,14 +102,14 @@ cleanup_restore_modules(Modules) ->
 modify_bar_call(AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {test_module2(), bar, 0},
-      {erlang, node},
+      {erlang, node, []},
       AbsCode).
 
 modify_mult_call(AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {test_module2(), mult, 2},
-      {?MODULE, hook_in},
+      {?MODULE, hook_in, [factors, '$args']},
       AbsCode).
 
 %% We inject this function in some tests
-hook_in(A, B) -> {factors, A, B}.
+hook_in(What, [A, B]) -> {What, A, B}.
