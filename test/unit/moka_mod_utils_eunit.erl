@@ -34,8 +34,8 @@ swap_forms_test_() ->
                , ?_assertError(undef, Module1:bar())
                , ?_assertError(undef, Module2:foo())
 
-               , ?_test(moka_mod_utils:load_forms(Module1, Forms2))
-               , ?_test(moka_mod_utils:load_forms(Module2, Forms1))
+               , ?_test(moka_mod_utils:load_abs_code(Module1, Forms2))
+               , ?_test(moka_mod_utils:load_abs_code(Module2, Forms1))
 
                , ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()})
                , ?_assertError(undef, Module2:bar())
@@ -55,7 +55,7 @@ modify_remote_call_test_() ->
              {inorder,
               [?_assertEqual(bar, Module:remote_bar())
 
-               , ?_test(moka_mod_utils:load_forms(
+               , ?_test(moka_mod_utils:load_abs_code(
                           Module, modify_bar_call(Forms)))
 
                , ?_assertEqual(node(), Module:remote_bar())]}

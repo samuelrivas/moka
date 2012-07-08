@@ -19,7 +19,7 @@
 %%% don't support all forms ...
 -module(moka_mod_utils).
 
--export([get_object_code/1, get_abs_code/1, load_forms/2, restore_module/1,
+-export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
          replace_remote_calls/3, to_str/1]).
 
 -type forms()           :: [erl_parse:abstract_form()].
@@ -73,8 +73,8 @@ get_abs_code(Module) ->
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--spec load_forms(module(), abstract_code()) -> ok.
-load_forms(Module, AbsCode) ->
+-spec load_abs_code(module(), abstract_code()) -> ok.
+load_abs_code(Module, AbsCode) ->
     Code = compile_forms(set_module_name(Module, AbsCode)),
     load_new_code(Module, Code).
 
