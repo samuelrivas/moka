@@ -19,6 +19,9 @@ get_forms_test_() ->
           moka_mod_utils:get_forms(FakeModule))
     ].
 
+%% This test is mainly to verify the possibility of loading new code. Further
+%% tests will use this functionality, but if this fails is quite likely that
+%% something with code loading has broken.
 swap_forms_test_() ->
     Module1 = test_module(),
     Module2 = test_module2(),
