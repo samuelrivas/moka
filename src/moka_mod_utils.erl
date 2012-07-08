@@ -1,8 +1,17 @@
 %%% @doc Functions to manipulate loaded code
+%%%
+%%% The functions in this module will not kill any process with dangling old
+%%% code. If there are such processes, functions will fail with
+%%% `{processes_using_old_code, Module}'. This is because the alternative
+%%% behaviour of killing those dangling processes can lead to very difficult to
+%%% debug situations. If you see these failures, find the reason there are
+%%% processes dangling with old code and fix it.
+%%%
+%%% @see code
 
 -module(moka_mod_utils).
 
--export([get_object_code/1, get_forms/1, load_forms/2]).
+-export([get_object_code/1, get_forms/1, load_forms/2, restore_module/1]).
 
 -type forms() :: [erl_parse:abstract_form()].
 
@@ -13,7 +22,8 @@
 %% @doc Returns the object code of a loadable module
 %%
 %% Independently of whether the module is loaded, this function fails if the
-%% object module be loaded (i.e. if the beam file is not int the load path)
+%% object module cannot be loaded again (i.e. if the beam file is not int the
+%% load path)
 %%
 %% @throws {cannot_get_object_code, Module}
 -spec get_object_code(module()) -> binary().
@@ -48,19 +58,23 @@ get_forms(Module) ->
 %%     module name</li>
 %% </ul>
 %%
-%% If there are processes using old code this function throws
-%% `{processes_using_old_code, Module}'. No process will be killed to substitute
-%% the code. This is because the alternative behaviour of killing those dangling
-%% processes can lead to very difficult to debug situations. If a test case
-%% fails because of this, find the reason there are processes dangling with old
-%% code and fix it.
-%%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
 -spec load_forms(module(), forms()) -> ok.
 load_forms(Module, Forms) ->
     Code = compile_forms(set_module_name(Module, Forms)),
     load_new_code(Module, Code).
+
+%% @doc Restores the original module behaviour.
+%%
+%% This function unloads the module and loads it again from the code search path
+%%
+%% @throws {processes_using_old_code, Module}
+%%       | {cannot_load_code, {Module, Reason}}
+-spec restore_module(module()) -> ok.
+restore_module(Module) ->
+    unload(Module),
+    handle_load_result(Module, code:load_file(Module)).
 
 %%%===================================================================
 %%% Private Functions
@@ -111,10 +125,12 @@ set_module_name(NewName, [H | T]) ->
 
 load_new_code(Module, Code) ->
     unload(Module),
-    case code:load_binary(Module, "no file", Code) of
-        {module, Module} -> ok;
-        {error, Reason} -> throw({cannot_load_code, {Module, Reason}})
-    end.
+    handle_load_result(Module, code:load_binary(Module, "no file", Code)).
+
+handle_load_result(Module, {module, Module}) ->
+    ok;
+handle_load_result(Module, {error, Reason}) ->
+    throw({cannot_load_code, {Module, Reason}}).
 
 %% We try to be careful not to kill any process lingering with old code as this
 %% can lead to very difficult do debug failing test cases. In case there are
