@@ -2,6 +2,8 @@
 
 -module(moka_test_module2).
 
--export([bar/0]).
+-export([bar/0, mult/2]).
 
 bar() -> bar.
+
+mult(A, B) -> A * B.

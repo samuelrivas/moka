@@ -2,6 +2,8 @@
 
 -module(moka_mod_utils_eunit).
 
+-export([hook_in/2]).
+
 -include_lib("eunit/include/eunit.hrl").
 
 get_beam_code_test_() ->
@@ -61,6 +63,22 @@ modify_remote_call_test_() ->
                , ?_assertEqual(node(), Module:remote_bar())]}
      end}.
 
+%% Test we can capture the arguments of the substituted call
+modify_remote_call_with_args_test_() ->
+    Module = test_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([Forms]) ->
+             {inorder,
+              [?_assertEqual(6, Module:remote_mult(2))
+
+               , ?_test(moka_mod_utils:load_abs_code(
+                          Module, modify_mult_call(Forms)))
+
+               , ?_assertEqual({factors, 2, 3}, Module:remote_mult(2))]}
+     end}.
+
 %%%===================================================================
 %%% Internals
 %%%===================================================================
@@ -84,5 +102,14 @@ cleanup_restore_modules(Modules) ->
 modify_bar_call(Forms) ->
     moka_mod_utils:replace_remote_calls(
       {test_module2(), bar, 0},
-      {erlang, node, []},
+      {erlang, node},
       Forms).
+
+modify_mult_call(Forms) ->
+    moka_mod_utils:replace_remote_calls(
+      {test_module2(), mult, 2},
+      {?MODULE, hook_in},
+      Forms).
+
+%% We inject this function in some tests
+hook_in(A, B) -> {factors, A, B}.
