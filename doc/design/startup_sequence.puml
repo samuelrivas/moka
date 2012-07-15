@@ -1,0 +1,41 @@
+@startuml img/sequence_img001.png
+actor user
+
+Create moka
+user -> moka: new(Module)
+
+moka -> application: start(moka)
+note right : Has effect only the first time
+
+Create MokaMainSup
+application -> MokaMainSup: start_link
+
+moka -> MokaMainSup: start_new_moka
+
+Create MokaSup
+MokaMainSup -> MokaSup: start_link
+
+Create MokaProcess
+MokaSup -> MokaProcess: start_link(MokaSup)
+MokaSup --> MokaMainSup: MokaPid
+MokaMainSup --> moka: MokaPid
+moka --> user: MokaPid
+
+user -> moka: replace_function(MokaPid, function1, Fun1)
+moka -> MokaProcess: replace_function(MokaPid, function, Fun1)
+MokaProcess -> MokaSup: new_call_handler(Fun1)
+
+Create CallHandler_1
+MokaSup -> CallHandler_1: start_link(Fun1)
+note right : CallHandler_1 must be a named process
+MokaSup --> MokaProcess: CallHandler_1
+
+user -> moka: replace_function(MokaPid, function2, Fun2)
+moka -> MokaProcess: replace_function(MokaPid, function, Fun2)
+MokaProcess -> MokaSup: new_call_handler(Fun2)
+
+Create CallHandler_2
+MokaSup -> CallHandler_2: start_link(Fun2)
+MokaSup --> MokaProcess: CallHandler_2
+
+@enduml

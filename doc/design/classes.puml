@@ -1,0 +1,57 @@
+@startuml
+
+class Moka {
+
+  start(Module)
+  stop()
+  replace_remote_call(Module, Function, Fun)
+  load()
+}
+
+note "By remote call we refer to\nsomething like mod:fun(...)" as M1
+M1 .. Moka
+
+class ModUtils <<library>> {
+  get_abstract_code(Module)
+  replace_remote_call(Abstact, CallTo = {Module, Function}, Fun)
+  restore(Module)
+}
+
+note "The arity of Fun determines the arity\nof the remote call to replace" as M2
+
+M2 .. ModUtils
+
+class AbsCode <<data>> {
+  module
+  source
+}
+
+class CallHandler {
+  - behaviour: fun
+
+  start()
+  set_response_fun(Fun)
+  get_response(Args)
+}
+note "Any representation of\nerlang source code" as M3
+M3 .. AbsCode
+
+class MainSup <<supervisor>> {
+  start()
+  start_new_moka()
+}
+class MokaSup <<supervisor>> {
+  start()
+  start_call_handler()
+}
+
+Moka *--> "*" CallHandler
+Moka *--> "1" AbsCode
+Moka ..> ModUtils
+ModUtils ..> AbsCode
+
+MainSup o--> "*" MokaSup : <<creates>>
+MokaSup o--> Moka : <<creates>>
+MokaSup o--> "*" CallHandler  : <<creates>>
+
+@enduml
