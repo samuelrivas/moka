@@ -10,11 +10,11 @@ Unloaded --> Loaded : moka:load()
 
 Loaded --> Unloading : moka:stop()
 
-note left : The unload transition\nis probably not needed
-
 Unloading --> [*] : code unloaded
 Unloaded --> [*] : moka:stop()
 
 Loaded --> Unloaded : moka:unload()
+note top of Loaded : The unload transition\nis probably not needed
+
 
 @enduml
