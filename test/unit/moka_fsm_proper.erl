@@ -227,7 +227,7 @@ pretty_print_state(StateName, StateData) ->
 pretty_print_command({set, Var, {call, Mod, Fun, Args}}, Result) ->
     io:format("~p=~p:~p(", [Var,Mod, Fun]),
     io:format(
-      "~s) -> ~p~n",
+      "~s) -> ~500p~n",
       [string:join([format("~p", [Arg]) || Arg <- Args], ","), Result]).
 
 format(Fmt, Args) -> lists:flatten(io_lib:format(Fmt, Args)).
