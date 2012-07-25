@@ -76,9 +76,13 @@ replace(Moka, Module, Function, NewBehaviour) ->
 
 %% @doc Makes all substitutions effective
 %%
-%% The arity of `NewBehaviour' determines the arity of the substituted function
+%% The moked module code will be changed after this function is called.
 %%
-%% @todo Errors when there are no calls to the substituted function
+%% You can easily know when a module is moked calling
+%% `Module:module_info(attributes)'. For moked modules, the returned list will
+%% contain a `moka_orig_module'.
+%%
+%%
 -spec load(moka()) -> ok.
 load(Moka) -> sel_gen_server:call(Moka, load).
 
