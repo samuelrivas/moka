@@ -283,6 +283,7 @@ walk_next(_Filter, Form = {atom, _, _}) -> Form;
 walk_next(_Filter, Form = {integer, _, _}) -> Form;
 walk_next(_Filter, Form = {var, _, _}) -> Form;
 walk_next(_Filter, Form = {eof, _}) -> Form;
+walk_next(_Filter, Form = {nil, _}) -> Form;
 
 %% Non Terminal Forms
 walk_next(Filter, {function, Line, Name, Arity, Body}) ->
@@ -296,6 +297,10 @@ walk_next(Filter, {clause, Line, Pattern, Guards, Body}) ->
      walk_and_filter(Filter, Pattern),
      walk_and_filter(Filter, Guards),
      walk_and_filter(Filter, Body)};
+walk_next(Filter, {cons, Line, Header, Tail}) ->
+    {cons, Line,
+     walk_and_filter(Filter, Header),
+     walk_and_filter(Filter, Tail)};
 walk_next(Filter, {call, Line, Body, Args}) ->
     {call, Line,
      walk_and_filter(Filter, Body),
