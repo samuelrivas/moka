@@ -54,7 +54,10 @@
 %%
 %% @todo Avoid the possibility of creating two mokas for the same module
 -spec start(module()) -> moka().
-start(Mod) -> moka_main_sup:start_moka(moka_name(Mod), Mod).
+start(Mod) ->
+    MokaName = moka_name(Mod),
+    moka_main_sup:start_moka(MokaName, Mod),
+    MokaName.
 
 %% @doc Stops an existing moka
 %%
