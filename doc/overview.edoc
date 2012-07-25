@@ -4,3 +4,6 @@
 @copyright 2013 Samuel Rivas, Shadid Chowdhury
 
 @doc A mock, more details will come
+
+The public API is in the module {@link moka}, you should not need anything from
+other modules
