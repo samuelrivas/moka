@@ -83,6 +83,8 @@ load(MokaServ) -> sel_gen_server:call(MokaServ, load).
 %% @private
 init(Mod) ->
     try
+        %% needed to have terminate run before the server dies
+        process_flag(trap_exit, true),
         {ok, #state{
            module = Mod,
            abs_code = moka_mod_utils:get_abs_code(Mod)
@@ -126,7 +128,6 @@ safe_handle_call(load, _From, State) ->
 
 %% FIXME the module should be restored in the terminate
 safe_handle_call(stop, _From, State) ->
-    moka_mod_utils:restore_module(State#state.module),
     {stop, normal, ok, State};
 
 safe_handle_call(Request, _From, _State) ->
@@ -139,7 +140,8 @@ handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, State) ->
+    moka_mod_utils:restore_module(State#state.module).
 
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
