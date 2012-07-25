@@ -7,7 +7,7 @@
 -behaviour(supervisor).
 
 %%%_* Exports ==========================================================
--export([start_link/0, start_moka/3 , stop_moka/1]).
+-export([start_link/0, start_moka/2, stop_moka/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,15 +22,17 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc Starts a new moka process tree
--spec start_moka(atom(), atom(), module()) -> ok.
-start_moka(SupName, MokaName, Module) ->
+-spec start_moka(atom(), module()) -> ok.
+start_moka(MokaName, MokedModule) ->
+    SupName = sup_name(MokaName),
     crashfy:untuple(
       supervisor:start_child(
-        ?MODULE, moka_sup_spec(SupName, MokaName, Module))).
+        ?MODULE, moka_sup_spec(SupName, MokaName, MokedModule))).
 
 %% @doc Stops a moka process tree
 -spec stop_moka(atom()) -> ok.
-stop_moka(SupName) ->
+stop_moka(MokaName) ->
+    SupName = sup_name(MokaName),
     crashfy:untuple(supervisor:terminate_child(?MODULE, SupName)).
 
 %%%_* Exported Internals ================================================
@@ -50,6 +52,9 @@ moka_sup_spec(SupName, MokaName, MokedModule) ->
     Shutdown = 2000,
     MFA = {moka_sup, start_link, [SupName, MokaName, MokedModule]},
     {SupName, MFA, Restart, Shutdown, supervisor, [moka_sup]}.
+
+sup_name(MokaName) ->
+    moka_utils:atom_append(atom_to_list(MokaName), "_sup").
 
 %%%_* Emacs ============================================================
 %%% Local Variables:

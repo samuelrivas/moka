@@ -45,7 +45,7 @@
 %%% API
 %%%===================================================================
 
-%% @doc Starts a new moka process
+%% @doc Starts a new moka
 %%
 %% `Mod' will be know as <b>the moked module</b> in this documentation. The
 %% created Moka will be used to modify calls from this module.
@@ -54,18 +54,13 @@
 %%
 %% @todo Avoid the possibility of creating two mokas for the same module
 -spec start(module()) -> moka().
-start(Mod) ->
-    MokaName = moka_name(Mod),
-    SupName = moka_sup_name(Mod),
-    case moka_sup:start_link(SupName, MokaName, Mod) of
-        {ok, _Pid} -> MokaName;
-        {error, Reason} -> throw({cannot_start_moka_sup, Reason})
-    end.
+start(Mod) -> moka_main_sup:start_moka(moka_name(Mod), Mod).
 
-%% FIXME Implement this using the global supervisor
-%% @doc Stops a moka process
+%% @doc Stops an existing moka
+%%
+%% All the modified modules are restored before stopping the moka.
 -spec stop(moka()) -> ok.
-stop(_Moka) -> erlang:error(unimplemented).
+stop(Moka) -> moka_main_sup:stop_moka(Moka).
 
 %% @doc Substitutes all calls from the moked module to `Mod:Fun/N'
 %%
@@ -87,7 +82,4 @@ load(Moka) -> sel_gen_server:call(Moka, load).
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-moka_name(Module) -> atom_append(atom_to_list(Module), "_moka").
-moka_sup_name(Module) -> atom_append(atom_to_list(Module), "_moka_sup").
-
-atom_append(Str1, Str2) -> list_to_atom(Str1 ++ Str2).
+moka_name(Module) -> moka_utils:atom_append(atom_to_list(Module), "_moka").
