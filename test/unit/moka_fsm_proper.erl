@@ -78,7 +78,8 @@ precondition(_From, _Target, _State, _Call) -> true.
 %% positives due to matching errors
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
-postcondition(defined, loaded, _StateData, _Call, _Res) -> true;
+postcondition(defined, loaded, _StateData, _Call, _Res) ->
+    is_moked(origin_module());
 postcondition(_From, _Target, State, {call, _Mod, call, [M, FunSpec]}, Res) ->
     case lists:member(FunSpec, State#state.replaced) of
         true ->
@@ -161,7 +162,13 @@ prop_moka_fsm() ->
                   {H, S, R} =
                       proper_fsm:run_commands(?MODULE, Cmds, [{moka, Moka}]),
 
-                  ?WHENFAIL(report_error(Cmds, H, S, R), R =:= ok)
+                  ?WHENFAIL(
+                     report_error(Cmds, H, S, R),
+
+                     proper:conjunction(
+                       [{result_is_ok, R =:= ok}
+                        , {code_restored, not is_moked(origin_module())}
+                       ]))
               after
                   moka:stop(Moka)
               end
@@ -234,3 +241,6 @@ report_last_state({StateName, StateData}) ->
 report_result(R) ->
     print_line(),
     io:format("~p~n", [R]).
+
+is_moked(Module) ->
+    lists:keymember(moka_orig_module, 1, Module:module_info(attributes)).
