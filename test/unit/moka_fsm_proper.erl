@@ -201,6 +201,8 @@ expected_exception({exception, error, {called, _Mod, _Line}, _}) -> true;
 expected_exception(_) -> false.
 
 %% TODO Move this to a generic library
+%% FIXME If the property crashes due to an exception we are not printing the
+%% command that causes it
 report_error(Cmds, H, S, R) ->
     report_history_and_states(Cmds, H, S),
     report_last_state(S),
