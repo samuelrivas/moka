@@ -30,6 +30,7 @@
 
 -define(PROPER_NO_IMPORTS, true).
 -include_lib("proper/include/proper.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -record(state, {
           replaced = [] :: [{Fun::atom(), Arity::non_neg_integer()}]
@@ -47,6 +48,12 @@
 
 %%% Transitions
 -export([replace/3, call/2]).
+
+%%%===================================================================
+%%% Eunit Wrapper
+%%%===================================================================
+all_properties_test() ->
+    ?assertEqual([], proper:module(?MODULE)).
 
 %%%===================================================================
 %%% FSM Callbacks
