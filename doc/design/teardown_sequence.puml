@@ -1,0 +1,24 @@
+@startuml
+
+CallHandler_1 --> MokaSup : crash
+destroy CallHandler_1
+activate MokaSup
+
+MokaSup -> moka: terminate
+activate moka
+moka -> moka_mod_utils: restore(Module)
+activate moka_mod_utils
+moka_mod_utils --> moka: ok
+deactivate moka_mod_utils
+moka --> MokaSup: ok
+destroy moka
+
+MokaSup -> CallHandler_2: terminate
+activate CallHandler_2
+CallHandler_2 --> MokaSup: ok
+destroy CallHandler_2
+
+MokaSup --> MokaMainSup: terminated
+destroy MokaSup
+
+@enduml
