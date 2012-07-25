@@ -7,3 +7,4 @@ doc/erlang.png
 doc/*.css
 deps
 .eunit/
+doc/design/*.eps
