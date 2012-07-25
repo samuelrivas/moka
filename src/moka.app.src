@@ -1,12 +1,9 @@
+%% -*- mode: erlang; erlang-indent-level: 2 -*-
 {application, moka,
- [
-  {description, ""},
-  {vsn, "1"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {mod, { moka_app, []}},
-  {env, []}
+ [  {description, "Yet another mocking framework"}
+  , {vsn, "git"}
+  , {registered, []}
+  , {applications, [kernel, stdlib, samerlib]}
+  , {mod, {moka_app, []}}
+  , {env, []}
  ]}.

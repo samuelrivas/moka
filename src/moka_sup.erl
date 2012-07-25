@@ -22,31 +22,49 @@
 %%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
+%%% @copyright 2012 Samuel Rivas
+%%% @doc Supervisor to hold each moka
+%%%
+%%% Each moka is held by one instance of this supervisor, along with all the
+%%% instantiated call handlers
 -module(moka_sup).
 
 -behaviour(supervisor).
 
-%% API
--export([start_link/0]).
+%%%_* Exports ==========================================================
+-export([start_link/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+%%%_* API ==============================================================
 
-%% ===================================================================
-%% API functions
-%% ===================================================================
+%% @doc Starts a supervisor for a new moka
+-spec start_link(atom(), atom(), module()) -> {ok, pid()} | {error, term()}.
+start_link(SupName, MokaName, MokedModule) ->
+    supervisor:start_link({local, SupName}, ?MODULE, {MokaName, MokedModule}).
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+%%%_* Exported Internals ================================================
 
-%% ===================================================================
-%% Supervisor callbacks
-%% ===================================================================
+%% @private
+init({MokaName, MokedModule}) ->
+    {ok, {supervisor_spec(), [moka_spec(MokaName, MokedModule)]}}.
 
-init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+%%%_* Private Functions ================================================
 
+supervisor_spec() ->
+    MaxRestarts = 0,
+    MaxSecondsBetweenRestarts = 1,
+    {one_for_all, MaxRestarts, MaxSecondsBetweenRestarts}.
+
+moka_spec(Name, Module) ->
+    Restart = permanent,
+    Shutdown = 2000,
+    MFA = {moka_server, start_link, [Name, Module]},
+    {moka, MFA, Restart, Shutdown, worker, [moka_server]}.
+
+%%%_* Emacs ============================================================
+%%% Local Variables:
+%%% allout-layout: t
+%%% erlang-indent-level: 4
+%%% End:
