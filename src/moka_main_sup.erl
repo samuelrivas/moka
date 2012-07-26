@@ -7,7 +7,7 @@
 -behaviour(supervisor).
 
 %%%_* Exports ==========================================================
--export([start_link/0, start_moka/2, stop_moka/1]).
+-export([start_link/0, start_moka/2, stop_moka/1, stop_all/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -28,6 +28,18 @@ start_moka(MokaName, MokedModule) ->
     crashfy:untuple(
       supervisor:start_child(
         ?MODULE, moka_sup_spec(SupName, MokaName, MokedModule))).
+
+%% @doc Stops all started mokas
+%%
+%% This function is mainly useful for testing moka, for your own test you should
+%% be able to stop your started mokas using {@link moka:stop/1}
+-spec stop_all() -> ok.
+stop_all() ->
+    All = [Id || {Id, _, _, _} <- supervisor:which_children(?MODULE)],
+    lists:foreach(
+      fun(Id) -> supervisor:terminate_child(?MODULE, Id) end,
+      All),
+    ok.
 
 %% @doc Stops a moka process tree
 -spec stop_moka(atom()) -> ok.
