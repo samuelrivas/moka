@@ -76,18 +76,22 @@ precondition(_From, _Target, _State, _Call) -> true.
 %%
 %% Also, keep the last match-all clause falling through to false to avoid false
 %% positives due to matching errors
+%%
+%% Put postconditions on calls first, then more generic postconditions (namely
+%% on edges from one state to other state)
+postcondition(_From, _Target, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
+    case lists:member(FunSpec, State#state.replaced) of
+        true ->
+            {F, Arity} = FunSpec,
+            Res == {ok, {moked, F, Arity}};
+        false ->
+            expected_exception(Res)
+    end;
+
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, loaded, _StateData, _Call, _Res) ->
     is_moked(origin_module());
-postcondition(_From, _Target, State, {call, _Mod, call, [M, FunSpec]}, Res) ->
-    case lists:member(FunSpec, State#state.replaced) of
-        true ->
-            {F, Arity} = FunSpec,
-            Res == {moked, M, F, Arity};
-        false ->
-            expected_exception(Res)
-    end;
 
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
@@ -141,7 +145,7 @@ get_exported(Mod) ->
 %%% Transitions
 %%%===================================================================
 replace(Moka, Mod, {FunctName, Arity}) ->
-    moka:replace(Moka, Mod, FunctName, make_fun(Mod, FunctName, Arity)).
+    moka:replace(Moka, Mod, FunctName, testing_fun(FunctName, Arity)).
 
 call(Module, {Funct, Arity}) ->
     try erlang:apply(Module, Funct, make_args(Arity))
@@ -182,7 +186,7 @@ origin_module() -> moka_test_origin_module.
 
 dest_module() -> moka_test_dest_module.
 
-make_fun(M, F, Arity) -> make_fun(Arity, {moked, M, F, Arity}).
+testing_fun(F, Arity) -> make_fun(Arity, {moked, F, Arity}).
 
 %% We support only arities up to 3, you need to update this if you modify the
 %% destination module
