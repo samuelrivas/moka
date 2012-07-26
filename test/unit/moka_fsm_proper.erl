@@ -77,9 +77,16 @@ precondition(_From, _Target, _State, _Call) -> true.
 %% Also, keep the last match-all clause falling through to false to avoid false
 %% positives due to matching errors
 %%
-%% Put postconditions on calls first, then more generic postconditions (namely
-%% on edges from one state to other state)
-postcondition(_From, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
+%% To avoid duplicating, base the postcondition in the target state and
+%% optionally in the origin state
+postcondition(_From, Target, _State, {call, _Mod, call, [_, _FunSpec]}, Res)
+  when Target /= loaded ->
+    expected_exception(Res);
+postcondition(new, defined, _StateData, _Call, _Res) -> true;
+postcondition(defined, defined, _StateData, _Call, _Res) -> true;
+postcondition(defined, loaded, _StateData, _Call, _Res) ->
+    is_moked(origin_module());
+postcondition(loaded, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
     case lists:member(FunSpec, State#state.replaced) of
         true ->
             {F, Arity} = FunSpec,
@@ -87,14 +94,6 @@ postcondition(_From, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
         false ->
             expected_exception(Res)
     end;
-postcondition(_From, _Target, _State, {call, _Mod, call, [_, _FunSpec]}, Res) ->
-    expected_exception(Res);
-
-postcondition(new, defined, _StateData, _Call, _Res) -> true;
-postcondition(defined, defined, _StateData, _Call, _Res) -> true;
-postcondition(defined, loaded, _StateData, _Call, _Res) ->
-    is_moked(origin_module());
-
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
 next_state_data(_From, _Target, State, _, {call, _, replace, Args}) ->
