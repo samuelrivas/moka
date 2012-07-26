@@ -79,7 +79,7 @@ precondition(_From, _Target, _State, _Call) -> true.
 %%
 %% Put postconditions on calls first, then more generic postconditions (namely
 %% on edges from one state to other state)
-postcondition(_From, _Target, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
+postcondition(_From, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
     case lists:member(FunSpec, State#state.replaced) of
         true ->
             {F, Arity} = FunSpec,
@@ -87,6 +87,8 @@ postcondition(_From, _Target, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
         false ->
             expected_exception(Res)
     end;
+postcondition(_From, _Target, _State, {call, _Mod, call, [_, _FunSpec]}, Res) ->
+    expected_exception(Res);
 
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
