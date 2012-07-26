@@ -33,6 +33,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -record(state, {
+          moka = none :: none | moka:moka(),
           replaced = [] :: [{Fun::atom(), Arity::non_neg_integer()}]
          }).
 
@@ -44,7 +45,7 @@
 -export([prop_moka_fsm/0]).
 
 %%% FSM States
--export([new/1, defined/1, loaded/1]).
+-export([initial/1, new/1, defined/1, loaded/1]).
 
 %%% Transitions
 -export([replace/3, call/2]).
@@ -59,7 +60,7 @@ all_properties_test() ->
 %%% FSM Callbacks
 %%%===================================================================
 
-initial_state() -> new.
+initial_state() -> initial.
 
 initial_state_data() -> #state{}.
 
@@ -71,7 +72,6 @@ precondition(_From, _Target, State, {call, _, replace, Args}) ->
 
 precondition(_From, _Target, _State, _Call) -> true.
 
-
 %% Try not to loose the postcondition too much or we might lose bugs
 %%
 %% Also, keep the last match-all clause falling through to false to avoid false
@@ -82,6 +82,7 @@ precondition(_From, _Target, _State, _Call) -> true.
 postcondition(_From, Target, _State, {call, _Mod, call, [_, _FunSpec]}, Res)
   when Target /= loaded ->
     expected_exception(Res);
+postcondition(initial, new, _StateData, _Call, _Res) -> true;
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, loaded, _StateData, _Call, _Res) ->
@@ -96,6 +97,8 @@ postcondition(loaded, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
     end;
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
+next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
+    State#state{moka = Res};
 next_state_data(_From, _Target, State, _, {call, _, replace, Args}) ->
     State#state{replaced = [get_fun_spec(Args) | State#state.replaced]};
 next_state_data(_From, _Target, State, _Res, _Call) ->
@@ -104,20 +107,23 @@ next_state_data(_From, _Target, State, _Res, _Call) ->
 %%%===================================================================
 %%% States
 %%%===================================================================
-new(_) ->
-    [{defined, call_replace()}
+initial(_) ->
+    [{new, {call, moka, start, [origin_module()]}}].
+
+new(#state{moka = Moka}) ->
+    [{defined, call_replace(Moka)}
      , {new, call_function()}].
 
-defined(_) ->
-    [{defined, call_replace()}
+defined(#state{moka = Moka}) ->
+    [{defined, call_replace(Moka)}
      , {defined, call_function()}
-     , {loaded, {call, moka, load, [{var, moka}]}}].
+     , {loaded, {call, moka, load, [Moka]}}].
 
 loaded(_) ->
     [{loaded, call_function()}].
 
-call_replace() ->
-    {call, ?MODULE, replace, [{var, moka}, dest_module(), dest_funct_spec()]}.
+call_replace(Moka) ->
+    {call, ?MODULE, replace, [Moka, dest_module(), dest_funct_spec()]}.
 
 call_function() ->
     {call, ?MODULE, call, [origin_module(), orig_fun_spec()]}.
@@ -162,21 +168,16 @@ prop_moka_fsm() ->
        Cmds, proper_fsm:commands(?MODULE),
        ?TRAPEXIT(
           begin
-              Moka = moka:start(origin_module()),
-              try
-                  {H, S, R} =
-                      proper_fsm:run_commands(?MODULE, Cmds, [{moka, Moka}]),
+              {H, S, R} = proper_fsm:run_commands(?MODULE, Cmds),
+              moka_main_sup:stop_all(),
 
-                  ?WHENFAIL(
-                     report_error(Cmds, H, S, R),
+              ?WHENFAIL(
+                 report_error(Cmds, H, S, R),
 
-                     proper:conjunction(
-                       [{result_is_ok, R =:= ok}
-                        , {code_restored, not is_moked(origin_module())}
-                       ]))
-              after
-                  moka:stop(Moka)
-              end
+                 proper:conjunction(
+                   [{result_is_ok, R =:= ok}
+                    , {code_restored, not is_moked(origin_module())}
+                   ]))
           end)).
 
 %%%===================================================================
