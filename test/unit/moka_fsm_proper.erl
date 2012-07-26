@@ -95,10 +95,16 @@ postcondition(loaded, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
         false ->
             expected_exception(Res)
     end;
+postcondition(loaded, initial, _StateData, _Call, _Res) ->
+    not is_moked(origin_module());
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
 next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
     State#state{moka = Res};
+next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
+    State#state{
+      moka = none,
+      replaced = []};
 next_state_data(_From, _Target, State, _, {call, _, replace, Args}) ->
     State#state{replaced = [get_fun_spec(Args) | State#state.replaced]};
 next_state_data(_From, _Target, State, _Res, _Call) ->
@@ -119,8 +125,9 @@ defined(#state{moka = Moka}) ->
      , {defined, call_function()}
      , {loaded, {call, moka, load, [Moka]}}].
 
-loaded(_) ->
-    [{loaded, call_function()}].
+loaded(#state{moka = Moka}) ->
+    [{loaded, call_function()}
+     , {initial, {call, moka, stop, [Moka]}}].
 
 call_replace(Moka) ->
     {call, ?MODULE, replace, [Moka, dest_module(), dest_funct_spec()]}.
