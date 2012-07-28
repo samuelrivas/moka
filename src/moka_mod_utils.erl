@@ -281,6 +281,7 @@ make_form_list([H | T]) -> {cons, 0, H, make_form_list(T)}.
 walk_next(_Filter, Form = {attribute, _, _, _}) -> Form;
 walk_next(_Filter, Form = {atom, _, _}) -> Form;
 walk_next(_Filter, Form = {integer, _, _}) -> Form;
+walk_next(_Filter, Form = {string, _, _}) -> Form;
 walk_next(_Filter, Form = {var, _, _}) -> Form;
 walk_next(_Filter, Form = {eof, _}) -> Form;
 walk_next(_Filter, Form = {nil, _}) -> Form;
@@ -301,6 +302,24 @@ walk_next(Filter, {cons, Line, Header, Tail}) ->
     {cons, Line,
      walk_and_filter(Filter, Header),
      walk_and_filter(Filter, Tail)};
+walk_next(Filter, {match, Line, Left, Right}) ->
+    {match, Line,
+     walk_and_filter(Filter, Left),
+     walk_and_filter(Filter, Right)};
+walk_next(Filter, {'fun', Line, {clauses, Clauses}}) ->
+    {'fun', Line, {clauses, [walk_and_filter(Filter, C) || C <- Clauses]}};
+walk_next(Filter, {tuple, Line, Terms}) ->
+    {tuple, Line, [walk_and_filter(Filter, Term) || Term <- Terms]};
+walk_next(Filter, {bin, Line, Elements}) ->
+    {bin, Line, [walk_and_filter(Filter, Element) || Element <- Elements]};
+walk_next(Filter, {bin_element, Line, P, Size, TSL}) ->
+    {bin_element, Line, walk_and_filter(Filter, P), Size, TSL};
+walk_next(Filter, {'try', Line, Body, Clauses, Catches, After}) ->
+    {'try', Line,
+     walk_and_filter(Filter, Body),
+     walk_and_filter(Filter, Clauses),
+     walk_and_filter(Filter, Catches),
+     walk_and_filter(Filter, After)};
 walk_next(Filter, {call, Line, Body, Args}) ->
     {call, Line,
      walk_and_filter(Filter, Body),
