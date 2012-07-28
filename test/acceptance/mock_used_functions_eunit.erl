@@ -27,28 +27,34 @@
 -module(mock_used_functions_eunit).
 
 %%% We want to mock accesses to file from this function
--export([copy_file/2]).
+-export([can_mock_read_write_test/0, copy_file/2]).
 
--include_lib("eunit/include/eunit.hrl").
+%% -include_lib("eunit/include/eunit.hrl").
 
 can_mock_read_write_test() ->
     Moka = moka:start(?MODULE),
-    moka:replace(Moka, file, read_file, fun(_) -> test_bin() end),
-    moka:replace(
-      Moka, file, write_file,
-      fun(_, B) ->
-              check_equal(B, test_bin()),
-              ok
-      end),
-    moka:load(Moka),
-    copy_file("/this/must/not/exist/anywhere", "/this/is/also/fake"),
-    moka:unload(Moka), % Optional, done automatically when stop
-    moka:stop(Moka).
+    try
+        moka:replace(Moka, file, read_file, fun(_) -> test_bin() end),
+        moka:replace(
+          Moka, file, write_file,
+          fun(_, B) ->
+                  check_equal(B, test_bin()),
+                  ok
+          end),
+        moka:load(Moka),
+
+        %% We have to do a fully qualified call here in order to run the new,
+        %% moked code
+        ?MODULE:copy_file(
+           "/this/must/not/exist/anywhere", "/this/is/also/fake")
+    after
+        moka:stop(Moka)
+    end.
 
 %% We want to mock this function and check it works without writing to actual
 %% files
 copy_file(Orig, Dest) ->
-    Bin = cashfy:untuple(file:read_file(Orig)),
+    Bin = crashfy:untuple(file:read_file(Orig)),
     crashfy:untuple(file:write_file(Dest, Bin)).
 
 check_equal(A, A) -> true;
