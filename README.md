@@ -20,21 +20,21 @@ been compiled with debug info.
 
 ## Demo!
 
-The system not ready to use from complete, but there is something you can
-already test. Write a module like this, compile it with `debug_info` and place
-the beam somewhere in the code search path:
+The system not ready to use reliably yet, but there is something you can already
+test. Write a module like this, compile it with `debug_info` and place the beam
+somewhere in the code search path:
+```erlang
+-module(short_demo).
 
-    -module(short_demo).
-    
-    -export([read_a_file/1]).
-    
-    read_a_file(File) ->
-        file:read_file(File).
+-export([read_a_file/1]).
 
+read_a_file(File) ->
+    file:read_file(File).
+```
 Go to a shell, check that it works as expected.
 
-Now we are going to mock it s if we wanted to unit test the code without setting
-any special files anywhere:
+Now we are going to mock it as if we wanted to unit test the code without
+setting any special files anywhere:
 
     1> short_demo:read_a_file("Whatever.txt").
     {error,enoent}
@@ -56,32 +56,23 @@ any special files anywhere:
     8> short_demo:read_a_file("Whatever.txt").
     {error,enoent}
 
-Don't play to much with it though, we are not using supervisors, and also call
-handlers are known to remain dangling. The Mokas can stop working at any moment.
-
 Just in case something breaks and leaves you with a modified version of the
 Moked module, you can restore the old code with
 `moka_mod_utils:restore_module/1`.
 
+Also, the first acceptance test we wrote to motivate our work is now
+passing. You can check it out as another example of what Moka can do: [mock_used_functions](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mock_used_functions_eunit.erl)
+
 ## Current Status
 
-The current status is shaky, in fact it still doesn't work. However the first
-two days of development (during SpawnFest 2012) we focused on quality and a good
-bakcing test suite, so the code is in good shape and is almost flying. The
-acceptance tests are quite close to pass, once we save a technicality with the
-call handler (we made it anonymous, but now we realised we cannot embed pids in
-the source code ...)
+The current status is shaky and incomplete. It is only possible to replace calls
+in with the form of `module:call(...).` No other type of calls will work. From
+support is not complete either. It is not rare that Moka cannot handle a module
+because it contains code Moka still doesn't understand.
 
-As a small experience report, we wanted to check whether TDD and property based
-testing will work for such a short time. We are not really sure if we could have
-gone further following more the hackish way, but we doubt it. Anyway, first day
-was a bit frustrating, with very little done but some diagrams in paper and some
-failing test cases. Second day the functionality skyrocketed, despite one of us
-being sick in bed (which left the other one in a team with 50% the intended
-workforce :)). Late night hacking the second day was only possible because we
-could run our test suite to check whether we were progressing or not. Sadly the
-main test suite is still not passing, but we need some medium changes to make it
-pass yet ...
+I am planning to experiment a bit with abstract syntax trees instead of abstract
+forms instead of developing full support for abstract forms, but that work is
+not yet completed.
 
 ## Acknowledgements
 
