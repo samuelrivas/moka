@@ -147,23 +147,22 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %% FIXME Dialyzer complains about the return type
 -spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
                                   abstract_code().
-replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
-    walk_and_filter(
-      fun(Call) ->
-              case Call of
-                  ?remote_call_match(OldMod, OldFun) ->
-                      replace_if_arity_match(Call, Arity, NewCall);
-                  _ ->
-                      no_match
-              end
-      end,
-      AbsCode).
-
-replace_if_arity_match(Call = {call, _, _, OldArgs}, Arity, NewCall) ->
-    case call_arity(Call) of
-        Arity -> remote_call_form(NewCall, OldArgs);
-        _Other -> Call
-    end.
+replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
+    Match = {OldMod, {OldFun, Arity}},
+    Filter =
+        fun(Tree) ->
+                case erl_syntax:type(Tree) of
+                    application ->
+                        case erl_syntax_lib:analyze_application(Tree) of
+                            What when What =:= Match ->
+                                    replace(Tree, NewCall);
+                            _Other ->
+                                     Tree
+                        end;
+                    _Other -> Tree
+                end
+        end,
+    walk_and_filter2(Filter, Forms).
 
 %%%===================================================================
 %%% Private Functions
@@ -242,85 +241,18 @@ delete(Module) ->
             erlang:error({cannot_delete_code, Module})
     end.
 
-walk_and_filter(_Filter, []) ->
-    [];
-walk_and_filter(Filter, [H | T]) ->
-    [step(Filter, H) | walk_and_filter(Filter, T)];
-walk_and_filter(Filter, Form) ->
-    step(Filter, Form).
+replace(Tree, {M, F, Args}) ->
+    OldArgs = erl_syntax:list(erl_syntax:application_arguments(Tree)),
+    New = erl_syntax:application(
+            erl_syntax:atom(M),
+            erl_syntax:atom(F),
+            [make_arg(Arg, OldArgs) || Arg <- Args]),
+    New.
 
-step(Filter, Form) ->
-    case Filter(Form) of
-        no_match -> walk_next(Filter, Form);
-        NewForm -> NewForm
-    end.
+make_arg('$args', OldArgs) -> OldArgs;
+make_arg(Arg, _) -> erl_syntax:abstract(Arg).
 
-call_arity({call, _Line, _Left, Args}) -> length(Args).
-
-remote_call_form({Module, Function, Args}, OldArgs) ->
-    {call, 0, {remote, 0, to_form(Module), to_form(Function)},
-     [args_to_form(X, OldArgs) || X <- Args]}.
-
-to_form(Term) -> erl_parse:abstract(Term).
-
-args_to_form('$args', OldArgs) -> make_form_list(OldArgs);
-args_to_form(Arg, _) -> to_form(Arg).
-
-make_form_list([]) -> erl_parse:abstract([]);
-make_form_list([H | T]) -> {cons, 0, H, make_form_list(T)}.
-
-%%%-------------------------------------------------------------------
-%%% Functions to walk the forms list
-%%%-------------------------------------------------------------------
-%% Keep this function from default matching, We want to know when something
-%% unsupported slips through for now.
-%%
-%% A decent quickcheck test might help to avoid this
-
-%% Terminal Forms
-walk_next(_Filter, Form = {attribute, _, _, _}) -> Form;
-walk_next(_Filter, Form = {atom, _, _}) -> Form;
-walk_next(_Filter, Form = {integer, _, _}) -> Form;
-walk_next(_Filter, Form = {string, _, _}) -> Form;
-walk_next(_Filter, Form = {var, _, _}) -> Form;
-walk_next(_Filter, Form = {eof, _}) -> Form;
-walk_next(_Filter, Form = {nil, _}) -> Form;
-
-%% Non Terminal Forms
-walk_next(Filter, {function, Line, Name, Arity, Body}) ->
-    {function, Line, Name, Arity, walk_and_filter(Filter, Body)};
-walk_next(Filter, {remote, Line, Left, Right}) ->
-    {remote, Line,
-     walk_and_filter(Filter, Left),
-     walk_and_filter(Filter, Right)};
-walk_next(Filter, {clause, Line, Pattern, Guards, Body}) ->
-    {clause, Line,
-     walk_and_filter(Filter, Pattern),
-     walk_and_filter(Filter, Guards),
-     walk_and_filter(Filter, Body)};
-walk_next(Filter, {cons, Line, Header, Tail}) ->
-    {cons, Line,
-     walk_and_filter(Filter, Header),
-     walk_and_filter(Filter, Tail)};
-walk_next(Filter, {match, Line, Left, Right}) ->
-    {match, Line,
-     walk_and_filter(Filter, Left),
-     walk_and_filter(Filter, Right)};
-walk_next(Filter, {'fun', Line, {clauses, Clauses}}) ->
-    {'fun', Line, {clauses, [walk_and_filter(Filter, C) || C <- Clauses]}};
-walk_next(Filter, {tuple, Line, Terms}) ->
-    {tuple, Line, [walk_and_filter(Filter, Term) || Term <- Terms]};
-walk_next(Filter, {bin, Line, Elements}) ->
-    {bin, Line, [walk_and_filter(Filter, Element) || Element <- Elements]};
-walk_next(Filter, {bin_element, Line, P, Size, TSL}) ->
-    {bin_element, Line, walk_and_filter(Filter, P), Size, TSL};
-walk_next(Filter, {'try', Line, Body, Clauses, Catches, After}) ->
-    {'try', Line,
-     walk_and_filter(Filter, Body),
-     walk_and_filter(Filter, Clauses),
-     walk_and_filter(Filter, Catches),
-     walk_and_filter(Filter, After)};
-walk_next(Filter, {call, Line, Body, Args}) ->
-    {call, Line,
-     walk_and_filter(Filter, Body),
-     walk_and_filter(Filter, Args)}.
+walk_and_filter2(Filter, Forms) ->
+    Tree = erl_syntax:form_list(Forms),
+    NewTree = erl_syntax_lib:map(Filter, Tree),
+    erl_syntax:revert_forms(NewTree).
