@@ -74,7 +74,7 @@ stop(Moka) -> moka_main_sup:stop_moka(Moka).
 %% @todo Errors when there are no calls to the substituted function
 -spec replace(moka(), module(), atom(), fun()) -> ok.
 replace(Moka, Module, Function, NewBehaviour) ->
-    sel_gen_server:call(Moka, {replace, Module, Function, NewBehaviour}).
+    moka_server:replace(Moka, Module, Function, NewBehaviour).
 
 %% @doc Makes all substitutions effective
 %%
@@ -83,10 +83,8 @@ replace(Moka, Module, Function, NewBehaviour) ->
 %% You can easily know when a module is moked calling
 %% `Module:module_info(attributes)'. For moked modules, the returned list will
 %% contain a `moka_orig_module'.
-%%
-%%
 -spec load(moka()) -> ok.
-load(Moka) -> sel_gen_server:call(Moka, load).
+load(Moka) -> moka_server:load(Moka).
 
 %%%===================================================================
 %%% Internal functions
