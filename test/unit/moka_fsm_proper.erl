@@ -183,7 +183,7 @@ prop_moka_fsm() ->
                  report_error(Cmds, H, S, R),
 
                  proper:conjunction(
-                   [{result_is_ok, R =:= ok}
+                   [{result_is_ok, proper:equals(R, ok)}
                     , {code_restored, not is_moked(origin_module())}
                    ]))
           end)).
