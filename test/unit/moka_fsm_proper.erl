@@ -51,12 +51,6 @@
 -export([replace/3, call/2]).
 
 %%%===================================================================
-%%% Eunit Wrapper
-%%%===================================================================
-all_properties_test() ->
-    ?assertEqual([], proper:module(?MODULE)).
-
-%%%===================================================================
 %%% FSM Callbacks
 %%%===================================================================
 
@@ -170,6 +164,13 @@ call(Module, {Funct, Arity}) ->
 %%%===================================================================
 %%% Properties
 %%%===================================================================
+
+moka_fsm_test_() ->
+    {setup,
+     fun() -> sel_application:start_app(moka) end,
+     fun(Apps) -> sel_application:stop_apps(Apps) end,
+     ?_assertMatch(true, proper:quickcheck(prop_moka_fsm()))}.
+
 prop_moka_fsm() ->
     ?FORALL(
        Cmds, proper_fsm:commands(?MODULE),
