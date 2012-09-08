@@ -27,11 +27,12 @@
 -module(mock_used_functions_eunit).
 
 %%% We want to mock accesses to file from this function
--export([can_mock_read_write_test/0, copy_file/2]).
+-export([copy_file/2]).
 
-%% -include_lib("eunit/include/eunit.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 can_mock_read_write_test() ->
+    Apps = sel_application:start_app(moka),
     Moka = moka:start(?MODULE),
     try
         moka:replace(Moka, file, read_file, fun(_) -> test_bin() end),
@@ -48,7 +49,8 @@ can_mock_read_write_test() ->
         ?MODULE:copy_file(
            "/this/must/not/exist/anywhere", "/this/is/also/fake")
     after
-        moka:stop(Moka)
+        moka:stop(Moka),
+        sel_application:stop_apps(Apps)
     end.
 
 %% We want to mock this function and check it works without writing to actual
