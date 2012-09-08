@@ -105,21 +105,16 @@ handle_call(Request, From, State) ->
             {stop, Error, {error, Error}, State}
     end.
 
-%% FIXME This function is ugly, refactor
 safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
+    Count          = State#state.handler_count,
+    AbsCode        = State#state.abs_code,
+    HandlerName    = start_call_handler(Module, NewBehaviour, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
-    HandlerName = call_handler_name(State),
-    moka_call_handler:start_link(HandlerName),
-    moka_call_handler:set_response_fun(HandlerName, NewBehaviour),
-    NewCode =
-        moka_mod_utils:replace_remote_calls(
-          {Module, Function, Arity},
-          {moka_call_handler, get_response, [HandlerName, '$args']},
-          State#state.abs_code),
+
     {reply, ok,
      State#state{
-       handler_count = State#state.handler_count + 1,
-       abs_code = NewCode}};
+       handler_count = Count + 1,
+       abs_code = modify_code(Module, Function, Arity, HandlerName, AbsCode)}};
 
 safe_handle_call(load, _From, State) ->
     moka_mod_utils:load_abs_code(State#state.module, State#state.abs_code),
@@ -146,8 +141,20 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-call_handler_name(#state{module = Module, handler_count = N}) ->
-    list_to_atom(lists:flatten(io_lib:format("~p_~p", [Module, N]))).
+start_call_handler(Module, Behaviour, Count) ->
+    HandlerName = call_handler_name(Module, Count),
+    moka_call_handler:start_link(HandlerName),
+    moka_call_handler:set_response_fun(HandlerName, Behaviour),
+    HandlerName.
+
+call_handler_name(Module, Count) ->
+    list_to_atom(lists:flatten(io_lib:format("~p_~p", [Module, Count]))).
+
+modify_code(Module, Function, Arity, HandlerName, AbsCode) ->
+    moka_mod_utils:replace_remote_calls(
+      {Module, Function, Arity},
+      {moka_call_handler, get_response, [HandlerName, '$args']},
+      AbsCode).
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
