@@ -47,7 +47,7 @@
 
 -record(state, {
           module             :: module() | undefined,
-          abs_code           :: moka_mod_handler:abstract_code() | undefined,
+          abs_code           :: moka_mod_utils:abstract_code() | undefined,
           handler_count = 0  :: non_neg_integer()
          }).
 
