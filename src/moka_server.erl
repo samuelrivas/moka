@@ -48,7 +48,7 @@
 -record(state, {
           module             :: module() | undefined,
           abs_code           :: moka_mod_handler:abstract_code() | undefined,
-          call_handlers = [] :: [moka_call_handler:call_handler()]
+          handler_count = 0  :: non_neg_integer()
          }).
 
 -type moka_server() :: atom().
@@ -118,7 +118,7 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
           State#state.abs_code),
     {reply, ok,
      State#state{
-       call_handlers = [HandlerName | State#state.call_handlers],
+       handler_count = State#state.handler_count + 1,
        abs_code = NewCode}};
 
 safe_handle_call(load, _From, State) ->
@@ -146,9 +146,8 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-call_handler_name(#state{module = Module, call_handlers = Handlers}) ->
-    list_to_atom(
-      lists:flatten(io_lib:format("~p_~p", [Module, length(Handlers)]))).
+call_handler_name(#state{module = Module, handler_count = N}) ->
+    list_to_atom(lists:flatten(io_lib:format("~p_~p", [Module, N]))).
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
