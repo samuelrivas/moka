@@ -105,7 +105,6 @@ handle_call(Request, From, State) ->
             {stop, Error, {error, Error}, State}
     end.
 
-%% FIXME We need to pass the original args, we must fix moka_mod_utils for this
 %% FIXME This function is ugly, refactor
 safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
@@ -126,7 +125,6 @@ safe_handle_call(load, _From, State) ->
     moka_mod_utils:load_abs_code(State#state.module, State#state.abs_code),
     {reply, ok, State};
 
-%% FIXME the module should be restored in the terminate
 safe_handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 
