@@ -30,7 +30,7 @@ There are, however, some drawbacks in Moka's approach:
 ## Compiling
 
 The compilation process is likely to change in the future, for now it relies
-entirely o [rebar](https://github.com/basho/rebar). This should work for you:
+entirely on [rebar](https://github.com/basho/rebar). This should work for you:
 
 ```
 git clone git://github.com/samuelrivas/moka.git
