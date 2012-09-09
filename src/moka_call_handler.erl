@@ -45,7 +45,7 @@
 %%% Types
 %%%===================================================================
 -record(state, {
-          reply_fun = undefined :: fun()
+          reply_fun = undefined :: undefined | fun()
          }).
 
 -type call_handler() :: pid().
