@@ -144,7 +144,6 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 -define(remote_call_match(Mod, Fun),
         {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}, _}).
 
-%% FIXME Dialyzer complains about the return type
 -spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
                                   abstract_code().
 replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
@@ -162,7 +161,7 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
                     _Other -> Tree
                 end
         end,
-    walk_and_filter2(Filter, Forms).
+    walk_and_filter(Filter, Forms).
 
 %%%===================================================================
 %%% Private Functions
@@ -252,7 +251,7 @@ replace(Tree, {M, F, Args}) ->
 make_arg('$args', OldArgs) -> OldArgs;
 make_arg(Arg, _) -> erl_syntax:abstract(Arg).
 
-walk_and_filter2(Filter, Forms) ->
+walk_and_filter(Filter, Forms) ->
     Tree = erl_syntax:form_list(Forms),
     NewTree = erl_syntax_lib:map(Filter, Tree),
     erl_syntax:revert_forms(NewTree).
