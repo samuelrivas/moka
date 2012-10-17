@@ -8,3 +8,4 @@ doc/*.css
 deps
 .eunit/
 doc/design/*.eps
+rebar/*
