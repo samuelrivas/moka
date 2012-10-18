@@ -5,7 +5,7 @@ REBAR = $(REBAR_REPO_DIR)/rebar
 
 .PHONY: doc clean clean-all
 
-all: compile
+all: compile doc
 
 $(REBAR): $(REBAR_REPO_DIR)
 	cd $(REBAR_REPO_DIR); ./bootstrap
