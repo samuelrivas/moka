@@ -6,4 +6,10 @@
 @doc A mock, more details will come
 
 The public API is in the module {@link moka}, you should not need anything from
-other modules
+other modules.
+
+See the README for more info. Either at the
+<a href="https://github.com/samuelrivas/moka/tree/master#readme"
+   target="_blank">
+  last stable version,
+</a> or the one in the source you used to generate this file.
