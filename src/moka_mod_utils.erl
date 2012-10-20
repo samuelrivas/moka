@@ -36,11 +36,6 @@
 %%%
 %%% @see code
 
-%%% TODO Maybe handing abstract trees (the ones handled by erl_syntax) is easier
-%%% than handling the Forms list. At least it seems there is an easy way of
-%%% traversing the abstract tree with erl_syntax_lib:fold. Needs some
-%%% investigation as the form traversing code is already somewhat tricky and we
-%%% don't support all forms ...
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
