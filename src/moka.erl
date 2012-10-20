@@ -52,9 +52,9 @@
 %% `Mod' will be know as <b>the moked module</b> in this documentation. The
 %% created Moka will be used to modify calls from this module.
 %%
-%% <b>NOTE:</b> You should never create two Mokas for the same module
+%% <b>NOTE:</b> You should never create two Mokas for the same module.
 %%
-%% @todo Avoid the possibility of creating two mokas for the same module
+%% @todo Avoid the possibility of creating two mokas for the same module.
 -spec start(module()) -> moka().
 start(Mod) ->
     MokaName = moka_name(Mod),
@@ -63,15 +63,15 @@ start(Mod) ->
 
 %% @doc Stops an existing moka
 %%
-%% All the modified modules are restored before stopping the moka.
+%% The original module code is restored after stopping the moka.
 -spec stop(moka()) -> ok.
 stop(Moka) -> moka_main_sup:stop_moka(Moka).
 
 %% @doc Substitutes all calls from the moked module to `Mod:Fun/N'
 %%
-%% The arity of `NewBehaviour' determines the arity of the substituted function
+%% The arity of `NewBehaviour' determines the arity of the substituted function.
 %%
-%% @todo Errors when there are no calls to the substituted function
+%% @todo Errors when there are no calls to the substituted function.
 -spec replace(moka(), module(), atom(), fun()) -> ok.
 replace(Moka, Module, Function, NewBehaviour) ->
     moka_server:replace(Moka, Module, Function, NewBehaviour).
@@ -81,8 +81,8 @@ replace(Moka, Module, Function, NewBehaviour) ->
 %% The moked module code will be changed after this function is called.
 %%
 %% You can easily know when a module is moked calling
-%% `Module:module_info(attributes)'. For moked modules, the returned list will
-%% contain a `moka_orig_module'.
+%% `Module:module_info(attributes)'. For moked modules, the returned list
+%% contains a `moka_orig_module' tuple.
 -spec load(moka()) -> ok.
 load(Moka) -> moka_server:load(Moka).
 

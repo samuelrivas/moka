@@ -1,5 +1,5 @@
 %%% @copyright 2012 Samuel Rivas
-%%% @doc Utility functions for Moka internal uses
+%%% @doc Miscellaneous utility functions for Moka
 -module(moka_utils).
 
 %%%_* Exports ==========================================================

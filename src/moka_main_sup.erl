@@ -32,7 +32,7 @@ start_moka(MokaName, MokedModule) ->
 %% @doc Stops all started mokas
 %%
 %% This function is mainly useful for testing moka, for your own test you should
-%% be able to stop your started mokas using {@link moka:stop/1}
+%% stop your mokas using {@link moka:stop/1}
 -spec stop_all() -> ok.
 stop_all() ->
     All = [Id || {Id, _, _, _} <- supervisor:which_children(?MODULE)],

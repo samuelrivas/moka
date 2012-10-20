@@ -65,7 +65,7 @@ start_link(ServerName, MokedMod) ->
 
 %% @doc Stops a moka server
 %%
-%% @deprecated don't use this function, it's only intended for debugging moka
+%% @deprecated don't use this function, it's only intended for debugging moka.
 -spec stop(moka_server()) -> ok.
 stop(MokaServ) -> sel_gen_server:call(MokaServ, stop).
 

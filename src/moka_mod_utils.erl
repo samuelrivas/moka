@@ -24,15 +24,13 @@
 
 %%% @doc Functions to manipulate loaded code
 %%%
-%%% The functions in this module will not kill any process with dangling old
-%%% code. If there are such processes, functions will fail with
-%%% `{processes_using_old_code, Module}'. This is because the alternative
-%%% behaviour of killing those dangling processes can lead to very difficult to
-%%% debug situations. If you see these failures, find the reason there are
-%%% processes dangling with old code and fix it.
-%%%
-%%% Current representation of the code is a list of `erl_parse:form()' terms,
-%%% but that is subject to change in the future
+%%% To avoid killing any process with dangling old code, functions in this
+%%% module fail with `{processes_using_old_code, Module}' if there are such
+%%% processes. The alternative behaviour is letting those dangling processes die
+%%% with `killed', which easily leads to very difficult to debug situations. If
+%%% you see these errors trying to load new code with functions in this module,
+%%% you have to find the reason there are processes dangling with old code and
+%%% fix that problem.
 %%%
 %%% @see code
 
@@ -42,7 +40,7 @@
          replace_remote_calls/3, to_str/1]).
 
 -type forms()           :: [erl_parse:abstract_form()].
--type remote_call()     :: {module(), atom(), [term()]}.
+-type remote_call()     :: {module(), atom(), Args::[term()]}.
 -opaque abstract_code() :: forms().
 
 -export_type([abstract_code/0]).
@@ -55,7 +53,7 @@
 %%
 %% Independently of whether the module is loaded, this function fails if the
 %% object module cannot be loaded again (i.e. if the beam file is not int the
-%% load path)
+%% load path).
 %%
 %% @throws {cannot_get_object_code, Module}
 -spec get_object_code(module()) -> binary().
@@ -65,7 +63,7 @@ get_object_code(Module) ->
         error -> throw({cannot_get_object_code, Module})
     end.
 
-%% @doc Returns the abstract form of a loadable module
+%% @doc Returns the abstract code of a loadable module
 %%
 %% This function throws `{no_abstract_code, Module}' when the module binary does
 %% not contain an `abstract_code' chunk. This is usually because the module was
@@ -81,11 +79,11 @@ get_abs_code(Module) ->
     ObjectCode = get_object_code(Module),
     get_object_code_forms(ObjectCode).
 
-%% @doc Substitutes current `Module' with the result of compiling `Forms'
+%% @doc Substitutes current `Module' with the result of compiling `AbsCode'
 %%
-%% `Forms' will be slightly modified:
+%% `AbsCode' will be slightly modified:
 %% <ul>
-%% <li>The attribute `module' of `Forms' is set to `Module'</li>
+%% <li>The attribute `module' of `AbsCode' is set to `Module'</li>
 %% <li>A wild attribute `-moka_orig_module(Module).' is added with the former
 %%     module name</li>
 %% </ul>
@@ -99,7 +97,8 @@ load_abs_code(Module, AbsCode) ->
 
 %% @doc Restores the original module behaviour.
 %%
-%% This function unloads the module and loads it again from the code search path
+%% To restore the original behaviour, this function unloads the module and loads
+%% it again from the code search path.
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
@@ -114,8 +113,8 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 
 %% @doc Replaces external function calls in `AbsCode'
 %%
-%% An element `$args' in the `Args' list of the `remote_call()' is replaced
-%% by the arguments in the old call.
+%% An element `$args' in the `Args' list of the {@link remote_call()} is
+%% replaced by the argument list in the old call.
 %%
 %% For example, if `AbsCode' represents a module `my_mod' containing next code:
 %% ```
@@ -123,11 +122,13 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %%    ...
 %%    other_module:bar(X).
 %% '''
-%% Next call will change `other_module:bar()' by
+%% Next call will change `other_module:bar(X)' by
 %% `io:format("Args: ~p~n", [X])':
 %% ```
 %% moka_mod_utils:replace_remote_calls(
-%%    {other_module, bar, 0}, {io, format, ["Args: ~p~n", '$args']}, Forms)
+%%    {other_module, bar, 0},
+%%    {io, format, ["Args: ~p~n", '$args']},
+%%    AbsCode)
 %% '''
 %%
 %% @throws {processes_using_old_code, Module}

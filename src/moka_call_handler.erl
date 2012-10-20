@@ -22,10 +22,10 @@
 %%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-%%% @doc Simulate the calls to Moked functions
+%%% @doc A server to simulate the calls to Moked functions
 %%%
 %%% Moked functions will be redirected to a call handler that will hold the
-%%% specifications coming from {@link moka} calls.
+%%% specifications created with {@link moka} "replace" calls.
 
 -module(moka_call_handler).
 
