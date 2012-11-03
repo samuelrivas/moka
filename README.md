@@ -31,6 +31,7 @@ There are, however, some drawbacks in Moka's approach:
 
  * Moka needs the module under test source code, so it must have
    been compiled with `debug_info`
+ * It is easier to copule tests with internal implementation details
  * Mocking dynamic calls is not straight forward (Moka cannot do it in its
    current state), so calls like `Module:Function(...)` will still call the
    original dependency
