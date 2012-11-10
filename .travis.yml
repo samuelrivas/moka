@@ -1,2 +1,5 @@
 language: erlang
+otp_release:
+   - R15B02
+   - R14B04
 script: "./travis-script.sh"
