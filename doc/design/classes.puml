@@ -1,6 +1,13 @@
 @startuml
 
-class Moka {
+class Moka <<facade>> {
+  start(Module) : MokaServer
+  stop(MokaServer)
+  replace(Moka, ...)
+  load(Moka)
+}
+
+class MokaServer {
 
   start(Module)
   stop()
@@ -9,7 +16,7 @@ class Moka {
 }
 
 note "By remote call we refer to\nsomething like mod:fun(...)" as M1
-M1 .. Moka
+M1 .. MokaServer
 
 class ModUtils <<library>> {
   get_abstract_code(Module)
@@ -32,6 +39,7 @@ class CallHandler {
   start()
   set_response_fun(Fun)
   get_response(Args)
+  get_history() : [{Args, Return}]
 }
 note "Any representation of\nerlang source code" as M3
 M3 .. AbsCode
@@ -45,13 +53,16 @@ class MokaSup <<supervisor>> {
   start_call_handler()
 }
 
-Moka *--> "*" CallHandler
-Moka *--> "1" AbsCode
-Moka ..> ModUtils
+Moka ..> MainSup
+Moka ..> MokaServer
+
+MokaServer *--> "*" CallHandler
+MokaServer *--> "1" AbsCode
+MokaServer ..> ModUtils
 ModUtils ..> AbsCode
 
 MainSup o--> "*" MokaSup : <<creates>>
-MokaSup o--> Moka : <<creates>>
+MokaSup o--> MokaServer : <<creates>>
 MokaSup o--> "*" CallHandler  : <<creates>>
 
 @enduml
