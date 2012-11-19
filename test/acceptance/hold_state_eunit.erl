@@ -42,8 +42,8 @@ can_base_on_previous_results_test() ->
           Moka, crypto, rand_uniform,
           fun(_, _) ->
                   case moka:history(Moka) of
-                      []                    -> 0;
-                      [{_Args, Return} | _] -> Return + 1
+                      []                          -> 0;
+                      [{_Fun, _Args, Return} | _] -> Return + 1
                   end
           end),
         moka:load(Moka),
@@ -68,7 +68,7 @@ can_check_arg_sequence_test() ->
           Moka, crypto, rand_uniform,
           fun(_, _) ->
                   lists:foldl(
-                    fun({[Arg], _Return}, Acc) -> Arg + Acc end,
+                    fun({_Fun, [Arg], _Return}, Acc) -> Arg + Acc end,
                     0, moka:history(Moka))
           end),
         moka:load(Moka),
@@ -80,6 +80,31 @@ can_check_arg_sequence_test() ->
         ?assertEqual(1, crypto:rand_uniform(2, 10)),
         ?assertEqual(3, crypto:rand_uniform(5, 10)),
         ?assertEqual(8, crypto:rand_uniform(0, 10))
+    after
+        moka:stop(Moka),
+        sel_application:stop_apps(Apps)
+    end.
+
+can_count_function_calls_test() ->
+    Apps = sel_application:start_app(moka),
+    Moka = moka:start(?MODULE),
+    try
+        moka:replace(Moka, crypto, rand_uniform, fun(_, _) -> 0 end),
+        moka:replace(Moka, crypto, rand_bytes, fun(_) -> <<>> end),
+        moka:load(Moka),
+        ?MODULE:code_load(),
+
+        %% Do some calls
+        crypto:rand_uniform(foo, bar),
+        crypto:rand_bytes(foo),
+        crypto:rand_bytes(foo),
+        crypto:rand_uniform(foo, bar),
+        crypto:rand_uniform(foo, bar),
+
+        %% Check we can count the calls
+        History = moka:history(Moka),
+        ?assertEqual(3, length([x || {rand_uniform, _Args, _Rtrn} <- History])),
+        ?assertEqual(2, length([x || {rand_bytes  , _Args, _Rtrn} <- History]))
     after
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
