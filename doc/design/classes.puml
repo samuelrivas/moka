@@ -5,6 +5,7 @@ class Moka <<facade>> {
   stop(MokaServer)
   replace(Moka, ...)
   load(Moka)
+  history(Moka) : [{Fun, Args, Result}]
 }
 
 class MokaServer {
@@ -13,6 +14,7 @@ class MokaServer {
   stop()
   replace_remote_call(Module, Function, Fun)
   load()
+  history() : [{Fun, Args, Result}]
 }
 
 note as M1
@@ -46,8 +48,15 @@ class CallHandler {
   start()
   set_response_fun(Fun)
   get_response(Args)
-  get_history() : [{Args, Return}]
 }
+
+class History {
+  - calls : [{Function, Args, Result}]
+
+  add_call(Function, Args, Result)
+  get_calls()
+}
+
 note as M3
   Any representation of
   erlang source code
@@ -68,11 +77,14 @@ Moka ..> MokaServer
 
 MokaServer *--> "*" CallHandler
 MokaServer *--> "1" AbsCode
-MokaServer ..> ModUtils
-ModUtils ..> AbsCode
+MokaServer *--> "1" History
+MokaServer  ..>     ModUtils
+ModUtils    ..>     AbsCode
 
-MainSup o--> "*" MokaSup : <<creates>>
-MokaSup o--> MokaServer : <<creates>>
-MokaSup o--> "*" CallHandler  : <<creates>>
+MainSup o--> "*" MokaSup     : <<creates>>
+MokaSup o-->     MokaServer  : <<creates>>
+MokaSup o--> "*" CallHandler : <<creates>>
+MokaSup o-->     History     : <<creates>>
 
+CallHandler ..> History
 @enduml
