@@ -15,7 +15,11 @@ class MokaServer {
   load()
 }
 
-note "By remote call we refer to\nsomething like mod:fun(...)" as M1
+note as M1
+  By remote call we refer to
+  something like mod:fun(...)
+end note
+
 M1 .. MokaServer
 
 class ModUtils <<library>> {
@@ -24,7 +28,10 @@ class ModUtils <<library>> {
   restore(Module)
 }
 
-note "The arity of Fun determines the arity\nof the remote call to replace" as M2
+note as M2
+  The arity of Fun determines the arity
+  of the remote call to replace
+end note
 
 M2 .. ModUtils
 
@@ -41,7 +48,10 @@ class CallHandler {
   get_response(Args)
   get_history() : [{Args, Return}]
 }
-note "Any representation of\nerlang source code" as M3
+note as M3
+  Any representation of
+  erlang source code
+end note
 M3 .. AbsCode
 
 class MainSup <<supervisor>> {
