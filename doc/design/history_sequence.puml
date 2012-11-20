@@ -1,0 +1,46 @@
+@startuml
+
+Participant MokedModule
+Participant CallHandler1
+Participant Fun1
+Participant CallHandler2
+Participant Fun2
+Participant History
+
+                [-> MokedModule         : call1(Args)
+Activate            MokedModule
+MokedModule      -> CallHandler1
+Activate            CallHandler1
+CallHandler1     -> Fun1
+Activate	    Fun1
+Deactivate          CallHandler1
+Fun1            --> History             : start_call(Ref, Fun, Args)
+Fun1		 -> Fun1                : eval_fun
+Activate            Fun1
+Fun1		 -> Fun1                : R1
+Deactivate          Fun1
+Fun1		--> History             : end_call(Ref, R1)
+Fun1		--> MokedModule         : R1
+Deactivate          Fun1
+               [<-- MokedModule
+Deactivate          MokedModule
+
+                [-> MokedModule         : call2(Args)
+Activate            MokedModule
+MokedModule      -> CallHandler2
+Activate            CallHandler2
+CallHandler2     -> Fun2
+Activate	    Fun2
+Deactivate          CallHandler2
+Fun2            --> History             : start_call(Ref, Fun, Args)
+Fun2		 -> Fun2                : eval_fun
+Activate            Fun2
+Fun2		 -> Fun2                : R2
+Deactivate          Fun2
+Fun2		--> History             : end_call(Ref, R2)
+Fun2		--> MokedModule         : R2
+Deactivate          Fun2
+               [<-- MokedModule
+Deactivate          MokedModule
+
+@enduml
