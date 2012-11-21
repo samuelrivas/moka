@@ -50,6 +50,10 @@ class CallHandler {
   get_response(Args)
 }
 
+class FunWorker  <<temporary>> {
+  eval(Fun)
+}
+
 class History {
   - calls : [{Function, Args, Result}]
 
@@ -85,6 +89,8 @@ MainSup o--> "*" MokaSup     : <<creates>>
 MokaSup o-->     MokaServer  : <<creates>>
 MokaSup o--> "*" CallHandler : <<creates>>
 MokaSup o-->     History     : <<creates>>
+MokaSup o--> "*" FunWorker   : <<creates>>
 
-CallHandler ..> History
+CallHandler  ..>     History
+CallHandler *--> "*" FunWorker
 @enduml
