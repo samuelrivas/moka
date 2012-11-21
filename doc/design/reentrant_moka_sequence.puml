@@ -1,0 +1,30 @@
+@startuml
+
+Participant CallHandler
+Participant FunEval1
+Participant FunEval2
+
+                [-> CallHandler         : call(Args)
+Activate            CallHandler
+CallHandler      -> FunEval1
+Deactivate          CallHandler
+Activate	    FunEval1
+FunEval1	 -> FunEval1            : eval(Fun, Args)
+Activate            FunEval1
+FunEval1         -> CallHandler         : call(OtherArgs)
+Activate            CallHandler
+CallHandler      -> FunEval2
+Deactivate          CallHandler
+Activate	    FunEval2
+FunEval2         -> FunEval2            : eval(Fun, OtherArgs)
+Activate            FunEval2
+FunEval2         -> FunEval2
+Deactivate          FunEval2
+FunEval2        --> FunEval1
+Deactivate          FunEval2
+FunEval1	 -> FunEval1
+Deactivate          FunEval1
+               [<-- FunEval1
+Deactivate          FunEval1
+
+@enduml
