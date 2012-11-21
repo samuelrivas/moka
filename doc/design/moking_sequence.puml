@@ -1,59 +1,71 @@
 @startuml
 actor user
 
+Participant moka
+Participant moka_mod_utils
+Participant Module
+Participant CallHandler1
+Participant FunProcess
+Participant Dependency
+
 Create moka
-note right of moka : Supervisors are hidden for simplicity
-user -> moka: start(Module)
+note right of moka                   : Supervisors are hidden for simplicity
+user             -> moka             : start(Module)
 activate moka
 
 
-moka -> moka_mod_utils: parse(Module)
+moka             -> moka_mod_utils   : parse(Module)
 activate moka_mod_utils
-moka_mod_utils --> moka: AbstractModule0
+moka_mod_utils  --> moka             : AbstractModule0
 deactivate moka_mod_utils
 
-moka --> user: Ref
+moka            --> user             : Ref
 deactivate moka
 
-user -> moka: substitute(Ref, call, new_call)
+user             -> moka             : substitute(Ref, call, new_call)
 activate moka
 Create CallHandler1
-note right of CallHandler1 : One call_handler per subsitute(...) call
-moka -> CallHandler1: start_link(new_call)
-moka -> moka_mod_utils: substitute(AbstracModule0, call, new_call)
+note right of CallHandler1           : One call_handler per subsitute(...) call
+moka             -> CallHandler1     : start_link(new_call)
+moka             -> moka_mod_utils   : substitute(AbstracModule0, call, new_call)
 activate moka_mod_utils
-moka_mod_utils --> moka: AbstractModule1
+moka_mod_utils  --> moka             : AbstractModule1
 deactivate moka_mod_utils
-moka --> user: ok
+moka            --> user             : ok
 deactivate moka
 
-user -> Module: call(Args)
+user             -> Module           : call(Args)
 Activate Module
-note right of Module : Calling the original code
-Module -> Dependency: call(InnerArgs)
-Dependency --> Module: DepResult
-Module --> user: Result
+note right of Module                 : Calling the original code
+Module           -> Dependency       : call(InnerArgs)
+Activate Dependency
+Dependency      --> Module           : DepResult
+Deactivate Dependency
+Module          --> user             : Result
 Deactivate Module
 
-user -> moka: load(Ref)
+user             -> moka             : load(Ref)
 Activate moka
-moka -> moka_mod_utils: load(Module, AbstractModule1)
+moka             -> moka_mod_utils   : load(Module, AbstractModule1)
 Activate moka_mod_utils
-moka_mod_utils -> Module: load(NewCode)
-moka_mod_utils --> moka: ok
+moka_mod_utils   -> Module           : load(NewCode)
+moka_mod_utils  --> moka             : ok
 Deactivate moka_mod_utils
-moka --> user: ok
+moka            --> user             : ok
 Deactivate moka
 
-user -> Module: call(Args)
+user             -> Module           : call(Args)
 Activate Module
-note right of Module : Calling the modified code
-Module -> CallHandler1
+note right of Module                 : Calling the modified code
+Module           -> CallHandler1
 Activate CallHandler1
-CallHandler1 -> CallHandler1: new_call(InnerArgs)
-CallHandler1 --> Module : NewDepResult
+CallHandler1     -> FunProcess
 Deactivate CallHandler1
-Module --> user : NewResult
+Activate FunProcess
+FunProcess       -> FunProcess       : new_call(InnerArgs)
+FunProcess      --> Module           : NewDepResult
+Deactivate FunProcess
+Module          --> user             : NewResult
 deactivate Module
 
 @enduml
