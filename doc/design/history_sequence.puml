@@ -12,8 +12,8 @@ Activate            MokedModule
 MokedModule      -> CallHandler1
 Activate            CallHandler1
 CallHandler1     -> Fun1
-Activate	    Fun1
 Deactivate          CallHandler1
+Activate	    Fun1
 Fun1            --> History             : start_call(Ref1, Fun, Args)
 
                 [-> MokedModule         : call2(Args)
@@ -21,8 +21,8 @@ Activate            MokedModule
 MokedModule      -> CallHandler2
 Activate            CallHandler2
 CallHandler2     -> Fun2
-Activate	    Fun2
 Deactivate          CallHandler2
+Activate	    Fun2
 Fun2            --> History             : start_call(Ref2, Fun, Args)
 Fun2		 -> Fun2                : eval_fun
 Activate            Fun2
