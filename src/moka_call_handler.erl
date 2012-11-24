@@ -89,8 +89,13 @@ init([]) -> {ok, #state{}}.
 %% @private
 handle_call({set_response_fun, Fun}, _From, State) ->
     {reply, ok, State#state{reply_fun = Fun}};
-handle_call({get_response, Args}, _From, State) ->
-    {reply, erlang:apply(State#state.reply_fun, Args), State};
+handle_call({get_response, Args}, From, State) ->
+    proc_lib:spawn_link(
+      fun() ->
+              Result = erlang:apply(State#state.reply_fun, Args),
+              gen_server:reply(From, Result)
+      end),
+    {noreply, State};
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 
