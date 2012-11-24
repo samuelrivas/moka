@@ -143,8 +143,7 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 start_call_handler(Module, Behaviour, Count) ->
     HandlerName = call_handler_name(Module, Count),
-    moka_call_handler:start_link(HandlerName),
-    moka_call_handler:set_response_fun(HandlerName, Behaviour),
+    moka_call_handler:start_link(HandlerName, Behaviour),
     HandlerName.
 
 call_handler_name(Module, Count) ->

@@ -35,7 +35,7 @@
 %%% Exports
 %%%===================================================================
 %% API
--export([start_link/1, set_response_fun/2, get_response/2, stop/1]).
+-export([start_link/2, get_response/2, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -57,15 +57,11 @@
 %%% API
 %%%===================================================================
 
-%% @doc Starts a new call handler
--spec start_link(atom()) -> call_handler().
-start_link(Name) ->
-    crashfy:untuple(gen_server:start_link({local, Name}, ?MODULE, [], [])).
-
-%% @doc Sets the fun used to create the response
--spec set_response_fun(call_handler_ref(), fun()) -> ok.
-set_response_fun(CallHandler, Fun) when is_function(Fun) ->
-    sel_gen_server:call(CallHandler, {set_response_fun, Fun}).
+%% @doc Starts a new call handler with `Fun' as `reply_fun'
+-spec start_link(atom(), fun()) -> call_handler().
+start_link(Name, Fun) when is_function(Fun) ->
+    crashfy:untuple(
+      gen_server:start_link({local, Name}, ?MODULE, Fun, [])).
 
 %% @doc Gets the response for a call
 %%
@@ -84,11 +80,9 @@ stop(CallHandler) -> sel_gen_server:call(CallHandler, stop).
 %%%===================================================================
 
 %% @private
-init([]) -> {ok, #state{}}.
+init(Fun) -> {ok, #state{reply_fun = Fun}}.
 
 %% @private
-handle_call({set_response_fun, Fun}, _From, State) ->
-    {reply, ok, State#state{reply_fun = Fun}};
 handle_call({get_response, Args}, From, State) ->
     proc_lib:spawn_link(
       fun() ->

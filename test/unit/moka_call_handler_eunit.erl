@@ -34,8 +34,7 @@
 call_handler_test_() ->
     {setup,
      fun() ->
-             Handler = start_handler(),
-             set_response_fun(fun(X,Y) -> X * Y end),
+             Handler = start_handler(fun(X,Y) -> X * Y end),
              Handler
      end,
      fun(Handler) -> stop_handler(Handler) end,
@@ -53,11 +52,10 @@ parallel_test_() ->
      {setup,
       fun() ->
               Relay   = start_relay(),
-              Handler = start_handler(),
-              set_response_fun(
-                fun(wait) -> wait_message(Relay);
-                   (send) -> send_message(Relay)
-                end),
+              Handler = start_handler(
+                          fun(wait) -> wait_message(Relay);
+                             (send) -> send_message(Relay)
+                          end),
               {Relay, Handler}
       end,
       fun({Relay, Handler}) ->
@@ -75,14 +73,11 @@ parallel_test_() ->
 %%%-------------------------------------------------------------------
 handler_name() -> test_handler.
 
-start_handler() -> moka_call_handler:start_link(handler_name()).
+start_handler(Fun) -> moka_call_handler:start_link(handler_name(), Fun).
 
 stop_handler(Pid) ->
     moka_call_handler:stop(handler_name()),
     sel_process:wait_exit(Pid).
-
-set_response_fun(Fun) ->
-    moka_call_handler:set_response_fun(handler_name(), Fun).
 
 get_response(Args) -> moka_call_handler:get_response(handler_name(), Args).
 
