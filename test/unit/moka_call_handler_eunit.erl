@@ -28,26 +28,20 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+%%%-------------------------------------------------------------------
+%%% Test cases
+%%%-------------------------------------------------------------------
 call_handler_test_() ->
     {setup,
      fun() ->
-             Handler = moka_call_handler:start_link(handler_name()),
-             moka_call_handler:set_response_fun(
-               handler_name(), fun(X,Y) -> X * Y end),
+             Handler = start_handler(),
+             set_response_fun(fun(X,Y) -> X * Y end),
              Handler
      end,
-     fun(Handler) ->
-             moka_call_handler:stop(handler_name()),
-             %% Assert the handler actually stops. This will timeout otherwise
-             sel_process:wait_exit(Handler)
-     end,
+     fun(Handler) -> stop_handler(Handler) end,
      fun(_) ->
-             [?_assertEqual(
-                 0, moka_call_handler:get_response(handler_name(), [0, 1]))
-
-              , ?_assertEqual(
-                   6, moka_call_handler:get_response(handler_name(), [2, 3]))
-             ]
+             [?_assertEqual(0, get_response([0, 1])),
+              ?_assertEqual(6, get_response([2, 3]))]
      end}.
 
 %% Start a third process that acts as message relay, then one test process will
@@ -58,10 +52,9 @@ parallel_test_() ->
     {"Call handler code can run in parallel",
      {setup,
       fun() ->
-              Relay = start_relay(),
-              Handler = moka_call_handler:start_link(handler_name()),
-              moka_call_handler:set_response_fun(
-                handler_name(),
+              Relay   = start_relay(),
+              Handler = start_handler(),
+              set_response_fun(
                 fun(wait) -> wait_message(Relay);
                    (send) -> send_message(Relay)
                 end),
@@ -69,9 +62,7 @@ parallel_test_() ->
       end,
       fun({Relay, Handler}) ->
               stop_relay(Relay),
-              moka_call_handler:stop(handler_name()),
-              %% Assert the handler actually stops. This will timeout otherwise
-              sel_process:wait_exit(Handler)
+              stop_handler(Handler)
       end,
       fun(_) ->
               {inparallel,
@@ -79,7 +70,19 @@ parallel_test_() ->
                 ?_test  (get_response([send]))]}
       end}}.
 
+%%%-------------------------------------------------------------------
+%%% Internal functions
+%%%-------------------------------------------------------------------
 handler_name() -> test_handler.
+
+start_handler() -> moka_call_handler:start_link(handler_name()).
+
+stop_handler(Pid) ->
+    moka_call_handler:stop(handler_name()),
+    sel_process:wait_exit(Pid).
+
+set_response_fun(Fun) ->
+    moka_call_handler:set_response_fun(handler_name(), Fun).
 
 get_response(Args) -> moka_call_handler:get_response(handler_name(), Args).
 
