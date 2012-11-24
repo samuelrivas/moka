@@ -50,4 +50,64 @@ call_handler_test_() ->
              ]
      end}.
 
+%% Start a third process that acts as message relay, then one test process will
+%% wait for a message from the relay and the other will send the message to the
+%% relay. This test will not succeed unless both calls can be processed in
+%% parallel by the call handler
+parallel_test_() ->
+    {"Call handler code can run in parallel",
+     {setup,
+      fun() ->
+              Relay = start_relay(),
+              Handler = moka_call_handler:start_link(handler_name()),
+              moka_call_handler:set_response_fun(
+                handler_name(),
+                fun(wait) -> wait_message(Relay);
+                   (send) -> send_message(Relay)
+                end),
+              {Relay, Handler}
+      end,
+      fun({Relay, Handler}) ->
+              stop_relay(Relay),
+              moka_call_handler:stop(handler_name()),
+              %% Assert the handler actually stops. This will timeout otherwise
+              sel_process:wait_exit(Handler)
+      end,
+      fun(_) ->
+              {inparallel,
+               [?_assert(get_response([wait])),
+                ?_test  (get_response([send]))]}
+      end}}.
+
 handler_name() -> test_handler.
+
+get_response(Args) -> moka_call_handler:get_response(handler_name(), Args).
+
+start_relay() -> spawn_link(fun() -> relay(no_msg) end).
+
+stop_relay(Relay) ->
+    erlang:exit(Relay, normal),
+    sel_process:wait_exit(Relay).
+
+wait_message(Relay) ->
+    Relay ! {request, self()},
+    receive msg     -> true
+    after timeout() -> false
+    end.
+
+send_message(Relay) -> Relay ! msg.
+
+relay(no_msg) ->
+    receive msg     -> relay(msg)
+    after timeout() ->
+            ?debugMsg("Relay didn't receive any 'msg'"),
+            ok
+    end;
+relay(msg) ->
+    receive {request, Pid} -> Pid ! msg
+    after timeout() ->
+            ?debugMsg("Relay didn't receive any request"),
+            ok
+    end.
+
+timeout() -> 1000.
