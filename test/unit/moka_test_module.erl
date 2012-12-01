@@ -26,7 +26,7 @@
 
 -module(moka_test_module).
 
--export([foo/0, remote_bar/0, remote_mult/1]).
+-export([foo/0, remote_bar/0, remote_mult/1, call_to_internal/0]).
 
 foo() -> foo.
 
@@ -35,3 +35,10 @@ remote_bar() ->
 
 remote_mult(N) ->
     moka_test_module2:mult(N, 3).
+
+call_to_internal() ->
+    internal_fun(10).
+
+internal_fun(N) ->
+    {internal_result, N}.
+
