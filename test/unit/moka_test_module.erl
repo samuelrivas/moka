@@ -30,15 +30,11 @@
 
 foo() -> foo.
 
-remote_bar() ->
-    moka_test_module2:bar().
+remote_bar() -> moka_test_module2:bar().
 
-remote_mult(N) ->
-    moka_test_module2:mult(N, 3).
+remote_mult(N) -> moka_test_module2:mult(N, 3).
 
-call_to_internal() ->
-    internal_fun(10).
+call_to_internal() -> internal_fun(10).
 
-internal_fun(N) ->
-    {internal_result, N}.
+internal_fun(N) -> {internal_result, N}.
 
