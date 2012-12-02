@@ -36,6 +36,15 @@ There are, however, some drawbacks in Moka's approach:
    current state), so calls like `Module:Function(...)` will still call the
    original dependency
 
+## Features
+
+This is a list of the main Moka capabilities, linked to their acceptance tests:
+
+ * Replace static, fully-qualified calls with a fun
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mock_used_functions_eunit.erl)
+ * Make internal functions available for testing
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/dynamic_exports.erl)
+
 ## Compiling and Testing
 
 Currently, the compilation process delegates on
@@ -107,10 +116,6 @@ setting any special files anywhere:
 Just in case something breaks and leaves you with a modified version of the
 moked module, you can restore the old code with
 `moka_mod_utils:restore_module/1`.
-
-Also, the first acceptance test we wrote to motivate our work must be
-passing. You can check it out as another example of what Moka can do:
-[mock_used_functions](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mock_used_functions_eunit.erl)
 
 ## Current Status
 
