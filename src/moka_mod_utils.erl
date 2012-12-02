@@ -130,9 +130,6 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %%    {io, format, ["Args: ~p~n", '$args']},
 %%    AbsCode)
 %% '''
-%%
-%% @throws {processes_using_old_code, Module}
-%%       | {cannot_load_code, {Module, Reason}}
 -spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
                                   abstract_code().
 replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
