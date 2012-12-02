@@ -33,7 +33,7 @@
 %%% Exports
 %%%===================================================================
 
--export([start/1, stop/1, replace/4, load/1]).
+-export([start/1, stop/1, replace/4, export/3, load/1]).
 
 %%%===================================================================
 %%% Types
@@ -75,6 +75,16 @@ stop(Moka) -> moka_main_sup:stop_moka(Moka).
 -spec replace(moka(), module(), atom(), fun()) -> ok.
 replace(Moka, Module, Function, NewBehaviour) ->
     moka_server:replace(Moka, Module, Function, NewBehaviour).
+
+%% @doc Adds `Fun/Arity' to the list of exported functions of the moked module
+%%
+%% Note that this doesn't check if exporting `Fun/Arity' is possible, so it will
+%% succeed for any atom-integer pair. {@link load/1} will fail if exporting
+%% `Fun/Arity' is not possible (e.g. if that function is undefined).
+-spec export(moka(), atom(), non_neg_integer()) -> ok.
+export(Moka, Function, Arity)
+  when is_atom(Function), is_integer(Arity) ->
+    moka_server:export(Moka, Function, Arity).
 
 %% @doc Makes all substitutions effective
 %%

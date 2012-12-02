@@ -34,7 +34,7 @@
 -behaviour(gen_server).
 
 %%%_* Exports ==========================================================
--export([start_link/2, stop/1, replace/4, load/1]).
+-export([start_link/2, stop/1, replace/4, export/3, load/1]).
 
 %% This function should only be used for debugging moka
 -deprecated([{stop, 1}]).
@@ -73,6 +73,11 @@ stop(MokaServ) -> sel_gen_server:call(MokaServ, stop).
 -spec replace(moka_server(), module(), atom(), fun()) -> ok.
 replace(MokaServ, Module, Function, NewBehaviour) ->
     sel_gen_server:call(MokaServ, {replace, Module, Function, NewBehaviour}).
+
+%% @doc Use {@link moka:export/3}
+-spec export(moka_server(), atom(), non_neg_integer()) -> ok.
+export(MokaServ, Function, Arity) ->
+    sel_gen_server:call(MokaServ, {export, Function, Arity}).
 
 %% @doc Use {@link moka:load/1}
 -spec load(moka_server()) -> ok.
@@ -115,6 +120,9 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
      State#state{
        handler_count = Count + 1,
        abs_code = modify_code(Module, Function, Arity, HandlerName, AbsCode)}};
+
+safe_handle_call({export, _Function, _Arity}, _From, State) ->
+    {reply, ok, State};
 
 safe_handle_call(load, _From, State) ->
     moka_mod_utils:load_abs_code(State#state.module, State#state.abs_code),
