@@ -119,10 +119,13 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
     {reply, ok,
      State#state{
        handler_count = Count + 1,
-       abs_code = modify_code(Module, Function, Arity, HandlerName, AbsCode)}};
+       abs_code =
+           modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode)}};
 
-safe_handle_call({export, _Function, _Arity}, _From, State) ->
-    {reply, ok, State};
+safe_handle_call({export, Function, Arity}, _From, State) ->
+    AbsCode = State#state.abs_code,
+    {reply, ok,
+     State#state{abs_code = moka_mod_utils:export(Function, Arity, AbsCode)}};
 
 safe_handle_call(load, _From, State) ->
     moka_mod_utils:load_abs_code(State#state.module, State#state.abs_code),
@@ -157,7 +160,7 @@ start_call_handler(Module, Behaviour, Count) ->
 call_handler_name(Module, Count) ->
     list_to_atom(lists:flatten(io_lib:format("~p_~p", [Module, Count]))).
 
-modify_code(Module, Function, Arity, HandlerName, AbsCode) ->
+modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {Module, Function, Arity},
       {moka_call_handler, get_response, [HandlerName, '$args']},
