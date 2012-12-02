@@ -132,22 +132,18 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %% '''
 -spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
                                   abstract_code().
-replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
-    Match = {OldMod, {OldFun, Arity}},
+replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
+    OldCall = {OldMod, {OldFun, Arity}},
     Filter =
-        fun(Tree) ->
-                case erl_syntax:type(Tree) of
-                    application ->
-                        case erl_syntax_lib:analyze_application(Tree) of
-                            What when What =:= Match ->
-                                    replace(Tree, NewCall);
-                            _Other ->
-                                     Tree
-                        end;
-                    _Other -> Tree
-                end
-        end,
-    walk_and_filter(Filter, Forms).
+        map_if_node_type(
+          application,
+          fun(Tree) ->
+                  case erl_syntax_lib:analyze_application(Tree) of
+                      What when What =:= OldCall -> replace(Tree, NewCall);
+                      _Other -> Tree
+                  end
+          end),
+    walk_and_filter(Filter, AbsCode).
 
 %% @doc Adds an exported function to the list of exported functions of `AbsCode'
 %%
@@ -160,19 +156,18 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
 -spec export(atom(), non_neg_integer(), abstract_code()) -> abstract_code().
 export(Funct, Arity, AbsCode) ->
     Filter =
-        fun(Tree) ->
-                case erl_syntax:type(Tree) of
-                    attribute ->
-                        case erl_syntax:atom_value(
-                               erl_syntax:attribute_name(Tree)) of
-                            export -> add_export(Tree, Funct, Arity);
-                            _Other -> Tree
-                        end;
-                    _Other -> Tree
-                end
-        end,
+        map_if_node_type(
+          attribute,
+          fun(Tree) ->
+                  case attribute_name(Tree) of
+                      export -> add_export(Tree, Funct, Arity);
+                      _Other -> Tree
+                  end
+          end),
     walk_and_filter(Filter, AbsCode).
 
+attribute_name(Tree) ->
+    erl_syntax:atom_value(erl_syntax:attribute_name(Tree)).
 %%%===================================================================
 %%% Private Functions
 %%%===================================================================
@@ -274,3 +269,12 @@ walk_and_filter(Filter, Forms) ->
     Tree = erl_syntax:form_list(Forms),
     NewTree = erl_syntax_lib:map(Filter, Tree),
     erl_syntax:revert_forms(NewTree).
+
+%% Create a filter that applies SubsFun in a subtree if it is of type Type
+map_if_node_type(Type, SubsFun) ->
+    fun(Tree) ->
+            case erl_syntax:type(Tree) of
+                Type -> SubsFun(Tree);
+                _Other -> Tree
+            end
+    end.
