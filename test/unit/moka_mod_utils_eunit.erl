@@ -32,17 +32,17 @@
 
 get_beam_code_test_() ->
     FakeModule = fake_module(),
-    [?_assert(is_binary(moka_mod_utils:get_object_code(test_module())))
-     , ?_assertThrow(
-          {cannot_get_object_code, FakeModule},
-          moka_mod_utils:get_object_code(FakeModule))].
+    [?_assert(is_binary(moka_mod_utils:get_object_code(test_module()))),
+     ?_assertThrow(
+        {cannot_get_object_code, FakeModule},
+        moka_mod_utils:get_object_code(FakeModule))].
 
 get_abs_code_test_() ->
     FakeModule = fake_module(),
-    [?_assert(is_list(moka_mod_utils:get_abs_code(test_module())))
-     , ?_assertThrow(
-          {cannot_get_object_code, FakeModule},
-          moka_mod_utils:get_abs_code(FakeModule))
+    [?_assert(is_list(moka_mod_utils:get_abs_code(test_module()))),
+     ?_assertThrow(
+        {cannot_get_object_code, FakeModule},
+        moka_mod_utils:get_abs_code(FakeModule))
     ].
 
 %% This test is mainly to verify the possibility of loading new code. Further
@@ -56,19 +56,19 @@ swap_forms_test_() ->
      fun(_) -> ok end,
      fun([AbsCode1, AbsCode2]) ->
              {inorder,
-              [?_assertEqual({foo, bar}, {Module1:foo(), Module2:bar()})
-               , ?_assertError(undef, Module1:bar())
-               , ?_assertError(undef, Module2:foo())
+              [?_assertEqual({foo, bar}, {Module1:foo(), Module2:bar()}),
+               ?_assertError(undef, Module1:bar()),
+               ?_assertError(undef, Module2:foo()),
 
-               , ?_test(moka_mod_utils:load_abs_code(Module1, AbsCode2))
-               , ?_test(moka_mod_utils:load_abs_code(Module2, AbsCode1))
+               ?_test(moka_mod_utils:load_abs_code(Module1, AbsCode2)),
+               ?_test(moka_mod_utils:load_abs_code(Module2, AbsCode1)),
 
-               , ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()})
-               , ?_assertError(undef, Module2:bar())
-               , ?_assertError(undef, Module1:foo())
+               ?_assertEqual({foo, bar}, {Module2:foo(), Module1:bar()}),
+               ?_assertError(undef, Module2:bar()),
+               ?_assertError(undef, Module1:foo()),
 
-               , ?_assertEqual(ok, moka_mod_utils:restore_module(Module1))
-               , ?_assertEqual(ok, moka_mod_utils:restore_module(Module2))
+               ?_assertEqual(ok, moka_mod_utils:restore_module(Module1)),
+               ?_assertEqual(ok, moka_mod_utils:restore_module(Module2))
               ]}
      end}.
 
@@ -79,12 +79,12 @@ modify_remote_call_test_() ->
      cleanup_restore_modules([Module]),
      fun([AbsCode]) ->
              {inorder,
-              [?_assertEqual(bar, Module:remote_bar())
+              [?_assertEqual(bar, Module:remote_bar()),
 
-               , ?_test(moka_mod_utils:load_abs_code(
-                          Module, modify_bar_call(AbsCode)))
+               ?_test(moka_mod_utils:load_abs_code(
+                        Module, modify_bar_call(AbsCode))),
 
-               , ?_assertEqual(node(), Module:remote_bar())]}
+               ?_assertEqual(node(), Module:remote_bar())]}
      end}.
 
 %% Test we can capture the arguments of the substituted call
@@ -95,12 +95,12 @@ modify_remote_call_with_args_test_() ->
      cleanup_restore_modules([Module]),
      fun([AbsCode]) ->
              {inorder,
-              [?_assertEqual(6, Module:remote_mult(2))
+              [?_assertEqual(6, Module:remote_mult(2)),
 
-               , ?_test(moka_mod_utils:load_abs_code(
-                          Module, modify_mult_call(AbsCode)))
+               ?_test(moka_mod_utils:load_abs_code(
+                        Module, modify_mult_call(AbsCode))),
 
-               , ?_assertEqual({factors, 2, 3}, Module:remote_mult(2))]}
+               ?_assertEqual({factors, 2, 3}, Module:remote_mult(2))]}
      end}.
 
 %% Test we can export unexported functions and call them
@@ -115,6 +115,7 @@ export_unexported_functions_test_() ->
                ?_test(moka_mod_utils:load_abs_code(
                         Module,
                         moka_mod_utils:export(internal_fun, 1, AbsCode))),
+
                ?_assertEqual({internal_result, 1}, Module:internal_fun(1)),
                ?_assertEqual({internal_result, 2}, Module:internal_fun(2))]}
      end}.

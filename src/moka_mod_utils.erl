@@ -217,8 +217,8 @@ report_warnings(Warnings) ->
 set_module_name(_NewName, []) ->
     [];
 set_module_name(NewName, [{attribute, Line, module, Mod} | T]) ->
-    [{attribute, Line, module, NewName}
-     , {attribute, Line, moka_orig_module, Mod}
+    [{attribute, Line, module, NewName},
+     {attribute, Line, moka_orig_module, Mod}
      | T];
 set_module_name(NewName, [H | T]) ->
     [H | set_module_name(NewName, T)].
