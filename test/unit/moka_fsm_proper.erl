@@ -23,6 +23,11 @@
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %%% @doc fsm test for moka
+%%%
+%%% This fsm exercises moka using the public api ({@link moka}). The goal is to
+%%% explore as many combinations of api calls as possible. As there are unit
+%%% tests for any other relevant module, this test focuses on covering
+%%% interaction and possible weird states
 
 -module(moka_fsm_proper).
 
