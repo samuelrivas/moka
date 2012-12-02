@@ -133,13 +133,6 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
-
-%% Using macros is the less ugly way I found to write the filter. Better
-%% suggestions are welcome
--define(atom_match(Atom), {atom, _, Atom}).
--define(remote_call_match(Mod, Fun),
-        {call, _, {remote, _, ?atom_match(Mod), ?atom_match(Fun)}, _}).
-
 -spec replace_remote_calls(mfa(), remote_call(), abstract_code()) ->
                                   abstract_code().
 replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
