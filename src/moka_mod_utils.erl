@@ -37,7 +37,7 @@
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
-         replace_remote_calls/3, to_str/1]).
+         replace_remote_calls/3, to_str/1, export/3]).
 
 -type forms()           :: [erl_parse:abstract_form()].
 -type remote_call()     :: {module(), atom(), Args::[term()]}.
@@ -159,6 +159,30 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, Forms) ->
         end,
     walk_and_filter(Filter, Forms).
 
+%% @doc Adds an exported function to the list of exported functions of `AbsCode'
+%%
+%% This will add `Funct/Arity' to the first `-exported' attribute found in
+%% `AbsCode'.
+%%
+%% Note that this function doesn't check whether `Funct/Arity' is defined. If
+%% you export an undefined function, the `AbsCode' will not compile, and thus
+%% cannot be loaded. This will make {@link load_abs_code/2} fail.
+-spec export(atom(), non_neg_integer(), abstract_code()) -> abstract_code().
+export(Funct, Arity, AbsCode) ->
+    Filter =
+        fun(Tree) ->
+                case erl_syntax:type(Tree) of
+                    attribute ->
+                        case erl_syntax:atom_value(
+                               erl_syntax:attribute_name(Tree)) of
+                            export -> add_export(Tree, Funct, Arity);
+                            _Other -> Tree
+                        end;
+                    _Other -> Tree
+                end
+        end,
+    walk_and_filter(Filter, AbsCode).
+
 %%%===================================================================
 %%% Private Functions
 %%%===================================================================
@@ -236,8 +260,8 @@ delete(Module) ->
             erlang:error({cannot_delete_code, Module})
     end.
 
-replace(Tree, {M, F, Args}) ->
-    OldArgs = erl_syntax:list(erl_syntax:application_arguments(Tree)),
+replace(ApplicTree, {M, F, Args}) ->
+    OldArgs = erl_syntax:list(erl_syntax:application_arguments(ApplicTree)),
     New = erl_syntax:application(
             erl_syntax:atom(M),
             erl_syntax:atom(F),
@@ -246,6 +270,15 @@ replace(Tree, {M, F, Args}) ->
 
 make_arg('$args', OldArgs) -> OldArgs;
 make_arg(Arg, _) -> erl_syntax:abstract(Arg).
+
+%% Add Name/Arity to the list of exported functions in a tree representing a
+%% "-export[...]" tree
+add_export(ExportTree, Name, Arity) ->
+    [Args] = erl_syntax:attribute_arguments(ExportTree),
+    AttrName = erl_syntax:attribute_name(ExportTree),
+    FunSpec = erl_syntax:arity_qualifier(
+                erl_syntax:atom(Name), erl_syntax:integer(Arity)),
+    erl_syntax:attribute(AttrName, [erl_syntax:cons(FunSpec, Args)]).
 
 walk_and_filter(Filter, Forms) ->
     Tree = erl_syntax:form_list(Forms),
