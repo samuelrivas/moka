@@ -28,7 +28,7 @@
 
 -module(moka_test_origin_module).
 
--export([sum/2, sum/3, square/1, unimplemented/0]).
+-export([sum/2, sum/3, square/1, unimplemented/0, indirect/1]).
 
 sum(A, B) -> moka_test_dest_module:sum(A, B).
 
@@ -36,5 +36,11 @@ sum(A, B, C) -> moka_test_dest_module:sum(A, B, C).
 
 square(A) -> moka_test_dest_module:square(A).
 
+%% This goes through an internal function call
+indirect(A) -> internal_call(A).
+
 %% This calls a function that doesn't exist
 unimplemented() -> moka_test_dest_module:unimplemented().
+
+%%% Private functions ------------------------------------------------
+internal_call(A) -> moka_test_dest_module:square(A).

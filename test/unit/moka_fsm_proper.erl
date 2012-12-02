@@ -39,7 +39,8 @@
 
 -record(state, {
           moka = none :: none | moka:moka(),
-          replaced = [] :: [{Fun::atom(), Arity::non_neg_integer()}]
+          replaced = [] :: [{Fun::atom(), Arity::non_neg_integer()}],
+          internal_exported = false :: boolean()
          }).
 
 %%% FSM Callbacks
@@ -53,7 +54,7 @@
 -export([initial/1, new/1, defined/1, loaded/1]).
 
 %%% Transitions
--export([replace/3, call/2]).
+-export([replace/3, call/2, call_internal/0]).
 
 %%%===================================================================
 %%% FSM Callbacks
@@ -78,24 +79,35 @@ precondition(_From, _Target, _State, _Call) -> true.
 %%
 %% To avoid duplicating, base the postcondition in the target state and
 %% optionally in the origin state
-postcondition(_From, Target, _State, {call, _Mod, call, [_, _FunSpec]}, Res)
+postcondition(_From, Target, _State, {call, _Mod, call, [_, FunSpec]}, Res)
   when Target /= loaded ->
-    expected_exception(Res);
+    expected_exception(FunSpec, Res);
+postcondition(_From, Target, _State, {call, _Mod, call_internal, _}, Res)
+  when Target /= loaded ->
+    expected_exception({internal_call, 1}, Res);
 postcondition(initial, new, _StateData, _Call, _Res) -> true;
 postcondition(new, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, defined, _StateData, _Call, _Res) -> true;
 postcondition(defined, loaded, _StateData, _Call, _Res) ->
-    is_moked(origin_module());
+    is_moked_module(origin_module());
 postcondition(loaded, loaded, State, {call, _Mod, call, [_, FunSpec]}, Res) ->
-    case lists:member(FunSpec, State#state.replaced) of
-        true ->
-            {F, Arity} = FunSpec,
-            Res == {ok, {moked, F, Arity}};
-        false ->
-            expected_exception(Res)
+    case is_moked_fun(FunSpec, State) of
+        true  -> Res == moked_result(FunSpec);
+        false -> expected_exception(FunSpec, Res)
     end;
+postcondition(loaded, loaded, State, {call, _Mod, call_internal, _}, Res)
+  when State#state.internal_exported ->
+    %% We are indirectly calling the same as square/1
+    FunSpec = {square, 1},
+    case is_moked_fun(FunSpec, State) of
+        true  -> Res == moked_result(FunSpec);
+        false -> expected_exception(FunSpec, Res)
+    end;
+postcondition(loaded, loaded, State, {call, _Mod, call_internal, _}, Res)
+  when not State#state.internal_exported ->
+    expected_exception({internal_call, 1}, Res);
 postcondition(loaded, initial, _StateData, _Call, _Res) ->
-    not is_moked(origin_module());
+    not is_moked_module(origin_module());
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
 next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
@@ -103,9 +115,12 @@ next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
 next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
     State#state{
       moka = none,
+      internal_exported = false,
       replaced = []};
 next_state_data(_From, _Target, State, _, {call, _, replace, Args}) ->
     State#state{replaced = [get_fun_spec(Args) | State#state.replaced]};
+next_state_data(_From, _Target, State, _, {call, moka, export, _}) ->
+    State#state{internal_exported = true};
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
@@ -117,15 +132,20 @@ initial(_) ->
 
 new(#state{moka = Moka}) ->
     [{defined, call_replace(Moka)},
-     {new, call_function()}].
+     {defined, export_internal_function(Moka)},
+     {new, call_function()},
+     {new, call_internal_function()}].
 
 defined(#state{moka = Moka}) ->
     [{defined, call_replace(Moka)},
      {defined, call_function()},
+     {defined, call_internal_function()},
+     {defined, export_internal_function(Moka)},
      {loaded, {call, moka, load, [Moka]}}].
 
 loaded(#state{moka = Moka}) ->
     [{loaded, call_function()},
+     {loaded, call_internal_function()},
      {initial, {call, moka, stop, [Moka]}}].
 
 call_replace(Moka) ->
@@ -133,6 +153,12 @@ call_replace(Moka) ->
 
 call_function() ->
     {call, ?MODULE, call, [origin_module(), orig_fun_spec()]}.
+
+call_internal_function() ->
+    {call, ?MODULE, call_internal, []}.
+
+export_internal_function(Moka) ->
+    {call, moka, export, [Moka, internal_call, 1]}.
 
 %%%===================================================================
 %%% Generators
@@ -166,6 +192,8 @@ call(Module, {Funct, Arity}) ->
     catch Type:Reason -> {exception, Type, Reason, erlang:get_stacktrace()}
     end.
 
+call_internal() -> call(origin_module(), {internal_call, 1}).
+
 %%%===================================================================
 %%% Properties
 %%%===================================================================
@@ -189,7 +217,7 @@ prop_moka_fsm() ->
 
                  proper:conjunction(
                    [{result_is_ok, proper:equals(R, ok)}
-                    , {code_restored, not is_moked(origin_module())}
+                    , {code_restored, not is_moked_module(origin_module())}
                    ]))
           end)).
 
@@ -215,9 +243,10 @@ get_fun_spec([_Dest, FunSpec]) -> FunSpec.
 
 make_args(N) -> lists:duplicate(N, fake_arg).
 
-expected_exception({exception, error, undef, _}) -> true;
-expected_exception({exception, error, {called, _Mod, _Line}, _}) -> true;
-expected_exception(_) -> false.
+expected_exception({unimplemented, _}, {exception, error, undef, _}) -> true;
+expected_exception({internal_call, _}, {exception, error, undef, _}) -> true;
+expected_exception(_, {exception, error, {called, _Mod, _Line}, _}) -> true;
+expected_exception(_, _) -> false.
 
 %% TODO Move this to a generic library
 %% FIXME If the property crashes due to an exception we are not printing the
@@ -263,5 +292,11 @@ report_result(R) ->
     print_line(),
     io:format("~p~n", [R]).
 
-is_moked(Module) ->
+is_moked_module(Module) ->
     lists:keymember(moka_orig_module, 1, Module:module_info(attributes)).
+
+is_moked_fun({indirect, 1}, State) -> is_moked_fun({square, 1}, State);
+is_moked_fun(FunSpec, State) -> lists:member(FunSpec, State#state.replaced).
+
+moked_result({indirect, 1}) -> moked_result({square, 1});
+moked_result({F, Arity}) -> {ok, {moked, F, Arity}}.
