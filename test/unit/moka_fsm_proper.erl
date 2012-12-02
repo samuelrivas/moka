@@ -116,17 +116,17 @@ initial(_) ->
     [{new, {call, moka, start, [origin_module()]}}].
 
 new(#state{moka = Moka}) ->
-    [{defined, call_replace(Moka)}
-     , {new, call_function()}].
+    [{defined, call_replace(Moka)},
+     {new, call_function()}].
 
 defined(#state{moka = Moka}) ->
-    [{defined, call_replace(Moka)}
-     , {defined, call_function()}
-     , {loaded, {call, moka, load, [Moka]}}].
+    [{defined, call_replace(Moka)},
+     {defined, call_function()},
+     {loaded, {call, moka, load, [Moka]}}].
 
 loaded(#state{moka = Moka}) ->
-    [{loaded, call_function()}
-     , {initial, {call, moka, stop, [Moka]}}].
+    [{loaded, call_function()},
+     {initial, {call, moka, stop, [Moka]}}].
 
 call_replace(Moka) ->
     {call, ?MODULE, replace, [Moka, dest_module(), dest_funct_spec()]}.
