@@ -103,6 +103,22 @@ modify_remote_call_with_args_test_() ->
                , ?_assertEqual({factors, 2, 3}, Module:remote_mult(2))]}
      end}.
 
+%% Test we can export unexported functions and call them
+export_unexported_functions_test_() ->
+    Module = test_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([AbsCode]) ->
+             {inorder,
+              [?_assertError(undef, Module:internal_fun(10)),
+               ?_test(moka_mod_utils:load_abs_code(
+                        Module,
+                        moka_mod_utils:export(internal_fun, 1, AbsCode))),
+               ?_assertEqual({internal_result, 1}, Module:internal_fun(1)),
+               ?_assertEqual({internal_result, 2}, Module:internal_fun(2))]}
+     end}.
+
 %%%===================================================================
 %%% Internals
 %%%===================================================================
