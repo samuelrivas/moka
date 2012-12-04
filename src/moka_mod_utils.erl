@@ -166,8 +166,6 @@ export(Funct, Arity, AbsCode) ->
           end),
     walk_and_filter(Filter, AbsCode).
 
-attribute_name(Tree) ->
-    erl_syntax:atom_value(erl_syntax:attribute_name(Tree)).
 %%%===================================================================
 %%% Private Functions
 %%%===================================================================
@@ -278,3 +276,5 @@ map_if_node_type(Type, SubsFun) ->
                 _Other -> Tree
             end
     end.
+
+attribute_name(Tree) -> erl_syntax:atom_value(erl_syntax:attribute_name(Tree)).
