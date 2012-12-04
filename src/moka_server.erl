@@ -34,7 +34,7 @@
 -behaviour(gen_server).
 
 %%%_* Exports ==========================================================
--export([start_link/2, stop/1, replace/4, export/3, load/1]).
+-export([start_link/2, stop/1, replace/3, replace/4, export/3, load/1]).
 
 %% This function should only be used for debugging moka
 -deprecated([{stop, 1}]).
@@ -68,6 +68,11 @@ start_link(ServerName, MokedMod) ->
 %% @deprecated don't use this function, it's only intended for debugging moka.
 -spec stop(moka_server()) -> ok.
 stop(MokaServ) -> sel_gen_server:call(MokaServ, stop).
+
+%% @doc Use {@link moka:replace/3}
+-spec replace(moka_server(), atom(), fun()) -> ok.
+replace(MokaServ, Function, NewBehaviour) ->
+    sel_gen_server:call(MokaServ, {replace, Function, NewBehaviour}).
 
 %% @doc Use {@link moka:replace/4}
 -spec replace(moka_server(), module(), atom(), fun()) -> ok.

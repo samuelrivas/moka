@@ -33,7 +33,7 @@
 %%% Exports
 %%%===================================================================
 
--export([start/1, stop/1, replace/4, export/3, load/1]).
+-export([start/1, stop/1, replace/3, replace/4, export/3, load/1]).
 
 %%%===================================================================
 %%% Types
@@ -66,6 +66,16 @@ start(Mod) when is_atom(Mod) ->
 %% The original module code is restored after stopping the moka.
 -spec stop(moka()) -> ok.
 stop(Moka) -> moka_main_sup:stop_moka(Moka).
+
+%% @doc Substitutes all calls to `Function' in the moked module
+%%
+%% The arity of `NewBehaviour' determines the arity of the substituted function.
+%%
+%% @todo Errors when there are no calls to the substituted function.
+-spec replace(moka(), atom(), fun()) -> ok.
+replace(Moka, Function, NewBehaviour)
+  when is_atom(Function), is_function(NewBehaviour) ->
+    moka_server:replace(Moka, Function, NewBehaviour).
 
 %% @doc Substitutes all calls from the moked module to `Mod:Fun/N'
 %%
