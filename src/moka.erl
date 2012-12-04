@@ -56,7 +56,7 @@
 %%
 %% @todo Avoid the possibility of creating two mokas for the same module.
 -spec start(module()) -> moka().
-start(Mod) ->
+start(Mod) when is_atom(Mod) ->
     MokaName = moka_name(Mod),
     moka_main_sup:start_moka(MokaName, Mod),
     MokaName.
@@ -73,7 +73,8 @@ stop(Moka) -> moka_main_sup:stop_moka(Moka).
 %%
 %% @todo Errors when there are no calls to the substituted function.
 -spec replace(moka(), module(), atom(), fun()) -> ok.
-replace(Moka, Module, Function, NewBehaviour) ->
+replace(Moka, Module, Function, NewBehaviour)
+  when is_atom(Module), is_atom(Function), is_function(NewBehaviour) ->
     moka_server:replace(Moka, Module, Function, NewBehaviour).
 
 %% @doc Adds `Fun/Arity' to the list of exported functions of the moked module
