@@ -41,7 +41,7 @@ There are, however, some drawbacks in Moka's approach:
 This is a list of the main Moka capabilities, linked to their acceptance tests:
 
  * Replace static, fully-qualified calls with a fun
-   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mock_used_functions_eunit.erl)
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mok_system_functions.erl)
  * Make internal functions available for testing
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/dynamic_exports.erl)
 
@@ -127,7 +127,7 @@ However, Moka is quite young, and little battle-tested, so you should expect
 some quirks, and, of course, lack of functionality. For instance, no checking
 can be done on whether the expected calls have been done, like you would do with
 Meck. You can use the function that replaces the moked call, as it is used in
-`mock_used_functions` acceptance test, but that will probably have some
+`mok_system_functions` acceptance test, but that will probably have some
 limitations.
 
 Feedback about desired improvements is very welcome (and collaborations even

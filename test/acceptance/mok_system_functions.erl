@@ -24,7 +24,7 @@
 
 %%% @doc Acceptance tests
 
--module(mock_used_functions_eunit).
+-module(mok_system_functions).
 
 %%% When moking the same module that implements the test (i.e. ?MODULE), we need
 %%% to do an external call to reload the code after loading the moka. In this
