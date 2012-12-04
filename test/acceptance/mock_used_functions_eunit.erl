@@ -26,7 +26,10 @@
 
 -module(mock_used_functions_eunit).
 
-%%% We want to mock accesses to file from this function
+%%% When moking the same module that implements the test (i.e. ?MODULE), we need
+%%% to do an external call to reload the code after loading the moka. In this
+%%% case we just export the function we want to test. This is not needed when
+%%% moking a different module.
 -export([copy_file/2]).
 
 -include_lib("eunit/include/eunit.hrl").
