@@ -235,6 +235,7 @@ initial_funct_table() ->
     add_arities(
       fun(Arity) ->
               [
+               {{internal_call, Arity}, {exception, {error, undef}}},
                {{call_to_internal, Arity}, {unmoked, make_args(Arity)}},
                {{direct_external_call, Arity}, {unmoked, make_args(Arity)}},
                {{indirect_external_call, Arity}, {unmoked, make_args(Arity)}},
