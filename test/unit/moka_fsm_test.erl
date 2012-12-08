@@ -43,8 +43,9 @@
 -type method_spec() :: {method_key(), ExpectedResult::term()}.
 
 -record(state, {
-          moka = none    :: none | moka:moka(),
-          functions = [] :: [method_spec()]
+          moka       = none :: none | moka:moka(),
+          functions  = []   :: [method_spec()],
+          unexported = []   :: [method_key()]
          }).
 
 %%%_* Exports ============================================================
@@ -66,7 +67,11 @@
 
 initial_state() -> initial.
 
-initial_state_data() -> #state{functions = initial_funct_table()}.
+initial_state_data() ->
+    #state{
+       functions  = initial_funct_table(),
+       unexported = initial_unexported_table()
+      }.
 
 weight(_,_,_) -> 1.
 
@@ -81,9 +86,17 @@ precondition(_From, _Target, _State, _Call) -> true.
 
 %% Call postconditions
 postcondition(_, loaded, StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
-    Res =:= get_expected_result(StateData#state.functions, Funct, Arity);
+    Res =:= get_expected_result(
+              StateData#state.functions,
+              StateData#state.unexported,
+              Funct,
+              Arity);
 postcondition(_, _, _StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
-    Res =:= get_expected_result(initial_funct_table(), Funct, Arity);
+    Res =:= get_expected_result(
+              initial_funct_table(),
+              initial_unexported_table(),
+              Funct,
+              Arity);
 postcondition(_, _, _StateData, {call, _Module, replace, _Args}, Res) ->
     Res =:= ok;
 
@@ -227,6 +240,19 @@ dest_module() -> moka_fsm_test_dest_module.
 is_moked_module(Module) ->
     lists:keymember(moka_orig_module, 1, Module:module_info(attributes)).
 
+%% This table returns the list of functions that we may try to call, but are
+%% initially not exported. Note the situation changes during the execution of
+%% the tests, so we need to keep an up to date copy of this table in the estate
+initial_unexported_table() ->
+    add_arities(
+      fun(Arity) ->
+              [
+               {internal_call, Arity},
+               {redirect_to_undef, Arity},
+               {redirect_to_external, Arity}
+              ]
+      end).
+
 %% This table contains the functions that are subject to be called during this
 %% test. Note the expected result will change depending on the modifications
 %% done with Moka during the test, so the state will keep an updated version of
@@ -235,7 +261,9 @@ initial_funct_table() ->
     add_arities(
       fun(Arity) ->
               [
-               {{internal_call, Arity}, {exception, {error, undef}}},
+               {{internal_call, Arity}, {unmoked, make_args(Arity)}},
+               {{redirect_to_undef, Arity}, {exception, {error, undef}}},
+               {{redirect_to_external, Arity}, {unmoked, make_args(Arity)}},
                {{call_to_internal, Arity}, {unmoked, make_args(Arity)}},
                {{direct_external_call, Arity}, {unmoked, make_args(Arity)}},
                {{indirect_external_call, Arity}, {unmoked, make_args(Arity)}},
@@ -247,9 +275,14 @@ initial_funct_table() ->
 %% Returns a {function, arity} pair list
 all_test_methods(State) -> [X || {X, _} <- State#state.functions].
 
-get_expected_result(Table, Call, Arity) ->
-    {_, Result} = sel_lists:keysearch({Call, Arity}, Table),
-    Result.
+get_expected_result(FunctionTable, UnexportedTable, Call, Arity) ->
+    Key = {Call, Arity},
+    case lists:member(Key, UnexportedTable) of
+        true -> {exception, {error, undef}};
+        false ->
+            {_, Result} = sel_lists:keysearch(Key, FunctionTable),
+            Result
+    end.
 
 %% This table contains the functions that are subject to be replaced with Moka
 %% and a list of the affected functions (i.e. functions subject to be called
