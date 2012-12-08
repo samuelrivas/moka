@@ -29,6 +29,10 @@
 -module(moka_fsm_test_orig_module).
 
 -export([
+         call_to_internal/0,
+         call_to_internal/1,
+         call_to_internal/2,
+
          direct_external_call/0,
          direct_external_call/1,
          direct_external_call/2,
@@ -45,6 +49,10 @@
          indirect_undef_dependency/1,
          indirect_undef_dependency/2
         ]).
+
+call_to_internal()     -> internal_call().
+call_to_internal(A)    -> internal_call(A).
+call_to_internal(A, B) -> internal_call(A, B).
 
 direct_external_call()     -> moka_fsm_test_dest_module:external_call().
 direct_external_call(A)    -> moka_fsm_test_dest_module:external_call(A).
@@ -73,3 +81,7 @@ redirect_to_undef(A, B) -> moka_fsm_test_dest_module:unimplemented(A, B).
 redirect_to_external()     -> moka_fsm_test_dest_module:external_call().
 redirect_to_external(A)    -> moka_fsm_test_dest_module:external_call(A).
 redirect_to_external(A, B) -> moka_fsm_test_dest_module:external_call(A, B).
+
+internal_call()     -> {unmoked, []}.
+internal_call(A)    -> {unmoked, [A]}.
+internal_call(A, B) -> {unmoked, [A, B]}.
