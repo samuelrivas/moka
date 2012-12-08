@@ -38,11 +38,12 @@
          indirect_undef_dependency/2
         ]).
 
-%% These functions directly depends on an unimplemented function
+%% These functions directly depend on an unimplemented function
 direct_undef_dependency()     -> moka_fsm_test_dest_module:unimplemented().
 direct_undef_dependency(A)    -> moka_fsm_test_dest_module:unimplemented(A).
 direct_undef_dependency(A, B) -> moka_fsm_test_dest_module:unimplemented(A, B).
 
+%% These functions indirectly depend on an unimplemented function
 indirect_undef_dependency()     -> redirect_to_undef().
 indirect_undef_dependency(A)    -> redirect_to_undef(A).
 indirect_undef_dependency(A, B) -> redirect_to_undef(A, B).
