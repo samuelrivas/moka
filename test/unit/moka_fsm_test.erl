@@ -266,13 +266,14 @@ replace_results(State, ReplacedSpec) ->
 replace_results(State, AffectedFunctions, NewResult) ->
     State#state{
       functions =
-          lists:foldl(
-            fun({Fun, Expected}, Acc) ->
+          lists:map(
+            fun({Fun, Expected}) ->
                     case lists:member(Fun, AffectedFunctions) of
-                        false -> [{Fun, Expected} | Acc];
-                        true  -> [{Fun, NewResult}]
+                        false -> {Fun, Expected};
+                        true  -> {Fun, NewResult}
                     end
-            end, [], State#state.functions)}.
+            end,
+            State#state.functions)}.
 
 make_args(0) -> [];
 make_args(N) -> lists:seq(0, N).
