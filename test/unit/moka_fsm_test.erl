@@ -232,12 +232,14 @@ is_moked_module(Module) ->
 %% done with Moka during the test, so the state will keep an updated version of
 %% this list
 initial_funct_table() ->
-    lists:flatten(
-      [[
-        {{direct_external_call     , Arity}, {unmoked, make_args(Arity)}},
-        {{direct_undef_dependency  , Arity}, {exception, {error, undef}}},
-        {{indirect_undef_dependency, Arity}, {exception, {error, undef}}}
-       ] || Arity <- lists:seq(0, 2)]).
+    add_arities(
+      fun(Arity) ->
+              [
+               {{direct_external_call, Arity}, {unmoked, make_args(Arity)}},
+               {{direct_undef_dependency, Arity}, {exception, {error, undef}}},
+               {{indirect_undef_dependency, Arity}, {exception, {error, undef}}}
+              ]
+      end).
 
 %% Returns a {function, arity} pair list
 all_test_methods(State) -> [X || {X, _} <- State#state.functions].
@@ -251,11 +253,11 @@ get_expected_result(Table, Call, Arity) ->
 %% during the tests which expected result will change as a result of the
 %% replacement)
 replaceable_method_table() ->
-    [
-     {{dest_module(), unimplemented, 0}, affected_by_undef(0)},
-     {{dest_module(), unimplemented, 1}, affected_by_undef(1)},
-     {{dest_module(), unimplemented, 2}, affected_by_undef(2)}
-    ].
+    add_arities(
+      fun(Arity) ->
+              [{{dest_module(), unimplemented, Arity},
+                affected_by_undef(Arity)}]
+      end).
 
 affected_by_undef(Arity) ->
     [{direct_undef_dependency, Arity}, {indirect_undef_dependency, Arity}].
@@ -286,6 +288,11 @@ update_expected_result({Function, Expected}, NewResult, AffectedFunctions) ->
         false -> {Function, Expected};
         true  -> {Function, NewResult}
     end.
+
+%% We test with a function without arguments, a function with one argument, and
+%% a function with two arguments for each case
+add_arities(TableFun) ->
+    lists:flatten([TableFun(Arity) || Arity <- lists:seq(0, 2)]).
 
 make_args(0) -> [];
 make_args(N) -> lists:seq(0, N - 1).
