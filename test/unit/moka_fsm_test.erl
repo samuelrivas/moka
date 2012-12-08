@@ -61,7 +61,7 @@
 -export([initial/1, new/1, loaded/1]).
 
 %%% Transitions
--export([call/1, replace/2]).
+-export([call/1, replace/2, export/2]).
 
 %%%_* FSM Callbacks ====================================================
 
@@ -99,6 +99,8 @@ postcondition(_, _, _StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
               Arity);
 postcondition(_, _, _StateData, {call, _Module, replace, _Args}, Res) ->
     Res =:= ok;
+postcondition(_, _, _StateData, {call, _Module, export, _Args}, Res) ->
+    Res =:= ok;
 
 %% Transition postconditions
 postcondition(initial, new, _StateData, _Call, _Res) ->
@@ -113,11 +115,15 @@ next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
     State#state{moka = Res};
 next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
     State#state{
-      moka      = none,
-      functions = initial_funct_table()
+      moka       = none,
+      functions  = initial_funct_table(),
+      unexported = initial_unexported_table()
      };
 next_state_data(_From, _Target, State, _Res, {call, _, replace, [_, Spec]}) ->
     replace_results(State, Spec);
+next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
+    Unexported = State#state.unexported,
+    State#state{unexported = Unexported -- [Spec]};
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
@@ -134,6 +140,7 @@ new(State) ->
      {initial, {call, moka, stop, [State#state.moka]}},
      {new, test_method_call(State)},
      {new, {call, ?MODULE, replace, [State#state.moka, mokable_method()]}},
+     {new, {call, ?MODULE, export, [State#state.moka, exportable_method()]}},
      {loaded, {call, moka, load, [State#state.moka]}}
     ].
 
@@ -152,6 +159,8 @@ test_method(State) -> proper_types:elements(all_test_methods(State)).
 
 mokable_method() -> proper_types:elements(all_replaceable_methods()).
 
+exportable_method() -> proper_types:elements(initial_unexported_table()).
+
 %%%_* Transitions ======================================================
 
 call({Function, Arity}) ->
@@ -161,6 +170,8 @@ call({Function, Arity}) ->
 
 replace(Moka, {Module, Function, Arity}) ->
     moka:replace(Moka, Module, Function, replacement_fun(Arity)).
+
+export(Moka, {Module, Arity}) -> moka:export(Moka, Module, Arity).
 
 %%%_* Properties =======================================================
 
