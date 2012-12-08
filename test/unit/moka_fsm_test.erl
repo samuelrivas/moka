@@ -274,14 +274,14 @@ replace_results(State, ReplacedSpec) ->
 replace_results(State, AffectedFunctions, NewResult) ->
     State#state{
       functions =
-          lists:map(
-            fun({Fun, Expected}) ->
-                    case lists:member(Fun, AffectedFunctions) of
-                        false -> {Fun, Expected};
-                        true  -> {Fun, NewResult}
-                    end
-            end,
-            State#state.functions)}.
+          [update_expected_result(FunSpec, NewResult, AffectedFunctions)
+           || FunSpec <- State#state.functions]}.
+
+update_expected_result({Function, Expected}, NewResult, AffectedFunctions) ->
+    case lists:member(Function, AffectedFunctions) of
+        false -> {Function, Expected};
+        true  -> {Function, NewResult}
+    end.
 
 make_args(0) -> [];
 make_args(N) -> lists:seq(0, N - 1).
