@@ -232,7 +232,11 @@ is_moked_module(Module) ->
 %% done with Moka during the test, so the state will keep an updated version of
 %% this list
 initial_funct_table() ->
-    [{{direct_undef_dependency, 0}, {exception, {error, undef}}}].
+    [
+     {{direct_undef_dependency, 0}, {exception, {error, undef}}},
+     {{direct_undef_dependency, 1}, {exception, {error, undef}}},
+     {{direct_undef_dependency, 2}, {exception, {error, undef}}}
+    ].
 
 %% Returns a {function, arity} pair list
 all_test_methods(State) -> [X || {X, _} <- State#state.functions].
@@ -246,7 +250,11 @@ get_expected_result(Table, Call, Arity) ->
 %% during the tests which expected result will change as a result of the
 %% replacement)
 replaceable_method_table() ->
-    [{{dest_module(), unimplemented, 0}, [{direct_undef_dependency, 0}]}].
+    [
+     {{dest_module(), unimplemented, 0}, [{direct_undef_dependency, 0}]},
+     {{dest_module(), unimplemented, 1}, [{direct_undef_dependency, 1}]},
+     {{dest_module(), unimplemented, 2}, [{direct_undef_dependency, 2}]}
+    ].
 
 replaced_spec_arity({_, _, Arity}) -> Arity.
 
@@ -276,6 +284,8 @@ replace_results(State, AffectedFunctions, NewResult) ->
             State#state.functions)}.
 
 make_args(0) -> [];
-make_args(N) -> lists:seq(0, N).
+make_args(N) -> lists:seq(0, N - 1).
 
-replacement_fun(0) -> fun() -> {moked, []} end.
+replacement_fun(0) -> fun()     -> {moked, []}     end;
+replacement_fun(1) -> fun(A)    -> {moked, [A]}    end;
+replacement_fun(2) -> fun(A, B) -> {moked, [A, B]} end.
