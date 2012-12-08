@@ -60,7 +60,7 @@
 -export([initial/1, new/1, loaded/1]).
 
 %%% Transitions
--export([call/1]).
+-export([call/1, mock/2]).
 
 %%%_* FSM Callbacks ====================================================
 
@@ -80,44 +80,84 @@ precondition(_From, _Target, _State, _Call) -> true.
 %% Call postconditions take precedence over transition postconditions
 
 %% Call postconditions
-postcondition(_, _, StateData, {call, _Module, call, [{Funct, Arity}]}, Res) ->
-    Res =:= expected_result(StateData, Funct, Arity);
+postcondition(_, Target, StateData, {call, _Module, call, [{Funct, Arity}]}, Res) ->
+    Table =
+        case Target of
+            loaded -> StateData#state.methods;
+            _      -> initial_method_table()
+        end,
+    Res =:= expected_result(Table, Funct, Arity);
+postcondition(_, _, _StateData, {call, _Module, mock, _Args}, Res) ->
+    Res =:= ok;
 
 %% Transition postconditions
 postcondition(initial, new, _StateData, _Call, _Res) ->
     not is_moked_module(origin_module());
 postcondition(new, loaded, _StateData, _Call, _Res) ->
     is_moked_module(origin_module());
-postcondition(loaded, initial, _StateData, _Call, _Res) ->
+postcondition(_, initial, _StateData, _Call, _Res) ->
     not is_moked_module(origin_module());
 postcondition(_From, _Target, _StateData, _Call, _Res) -> false.
 
 next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
     State#state{moka = Res};
 next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
-    State#state{moka = none};
+    State#state{
+      moka    = none,
+      methods = initial_method_table()
+     };
+next_state_data(_From, _Target, State, _Res, {call, _, mock, [_St, Method]}) ->
+    update_expected_results(State, Method);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
+
+update_expected_results(
+  State = #state{methods = Methods}, MokedMethod) ->
+    AffectedMethods = affected_results(MokedMethod),
+    Arity = moked_method_arity(MokedMethod),
+    NewResult = {moked, make_args(Arity)},
+    State#state{
+      methods =
+          lists:foldl(
+            fun({Fun, Expected}, Acc) ->
+                    case lists:member(Fun, AffectedMethods) of
+                        false -> [{Fun, Expected} | Acc];
+                        true  -> [{Fun, NewResult}]
+                    end
+            end, [], Methods)}.
+
+moked_method_arity({_, _, Arity}) -> Arity.
 
 %%%_* States ===========================================================
 
 initial(State) ->
-    [{new, {call, moka, start, [origin_module()]}},
-     {initial, test_method_call(State)}].
+    [
+     {new, {call, moka, start, [origin_module()]}},
+     {initial, test_method_call(State)}
+    ].
 
 new(State) ->
-    [{loaded, {call, moka, load, [State#state.moka]}},
-     {new, test_method_call(State)}].
+    [
+     {initial, {call, moka, stop, [State#state.moka]}},
+     {new, test_method_call(State)},
+     {new, {call, ?MODULE, mock, [State#state.moka, mokable_method()]}},
+     {loaded, {call, moka, load, [State#state.moka]}}
+    ].
 
 loaded(State) ->
-    [{initial, {call, moka, stop, [State#state.moka]}},
-     {loaded, test_method_call(State)}].
+    [
+     {initial, {call, moka, stop, [State#state.moka]}},
+     {loaded, test_method_call(State)}
+    ].
 
 test_method_call(State) ->
     {call, ?MODULE, call, [test_method(State)]}.
 
 %%%_* Generators =======================================================
+
 test_method(State) -> proper_types:elements(all_test_methods(State)).
+
+mokable_method() -> proper_types:elements(all_mokable_methods()).
 
 %%%_* Transitions ======================================================
 
@@ -125,6 +165,9 @@ call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
     catch X:Y -> {exception, {X, Y}}
     end.
+
+mock(Moka, {Module, Function, Arity}) ->
+    moka:replace(Moka, Module, Function, mock_fun(Arity)).
 
 %%%_* Properties =======================================================
 
@@ -197,9 +240,9 @@ report_result(R) ->
     print_line(),
     io:format("~p~n", [R]).
 
-origin_module() -> moka_test_origin_module.
+origin_module() -> moka_fsm_test_orig_module.
 
-dest_module() -> moka_test_dest_module.
+dest_module() -> moka_fsm_test_dest_module.
 
 is_moked_module(Module) ->
     lists:keymember(moka_orig_module, 1, Module:module_info(attributes)).
@@ -210,9 +253,22 @@ initial_method_table() ->
 %% Returns a {function, arity} pair list
 all_test_methods(State) -> [X || {X, _} <- State#state.methods].
 
-expected_result(#state{methods = Table}, Call, Arity) ->
+expected_result(Table, Call, Arity) ->
     {_, Result} = sel_lists:keysearch({Call, Arity}, Table),
     Result.
 
+%% For simplicity, all moka funs return a list with the parameters, and we
+%% assume that affected functions will return that value directly
+mokable_method_table() ->
+    [{{dest_module(), unimplemented, 0}, [{direct_undef_dependency, 0}]}].
+
+all_mokable_methods() -> [X || {X, _} <- mokable_method_table()].
+
+affected_results(MokedFunction) ->
+    {_, Affected} = sel_lists:keysearch(MokedFunction, mokable_method_table()),
+    Affected.
+
 make_args(0) -> [];
 make_args(N) -> lists:seq(0, N).
+
+mock_fun(0) -> fun() -> {moked, []} end.

@@ -31,7 +31,7 @@
 -export([direct_undef_dependency/0]).
 
 %% This function directly depends on an unimplemented function
-direct_undef_dependency() -> moka_fs_test_dest_module:unimplemented().
+direct_undef_dependency() -> moka_fsm_test_dest_module:unimplemented().
 
 %%% Private functions ------------------------------------------------
 
