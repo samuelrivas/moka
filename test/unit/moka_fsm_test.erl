@@ -255,8 +255,12 @@ get_expected_result(Table, Call, Arity) ->
 replaceable_method_table() ->
     add_arities(
       fun(Arity) ->
-              [{{dest_module(), unimplemented, Arity},
-                affected_by_undef(Arity)}]
+              [
+               {{dest_module(), unimplemented, Arity},
+                affected_by_undef(Arity)},
+               {{dest_module(), external_call, Arity},
+                [{direct_external_call, Arity}]}
+              ]
       end).
 
 affected_by_undef(Arity) ->
