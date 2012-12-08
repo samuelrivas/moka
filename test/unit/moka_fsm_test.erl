@@ -312,10 +312,18 @@ replaceable_method_table() ->
       end).
 
 affected_by_undef(Arity) ->
-    [{direct_undef_dependency, Arity}, {indirect_undef_dependency, Arity}].
+    [
+     {redirect_to_undef, Arity},
+     {direct_undef_dependency, Arity},
+     {indirect_undef_dependency, Arity}
+    ].
 
 affected_by_external(Arity) ->
-    [{direct_external_call, Arity}, {indirect_external_call, Arity}].
+    [
+     {redirect_to_external, Arity},
+     {direct_external_call, Arity},
+     {indirect_external_call, Arity}
+    ].
 
 replaced_spec_arity({_, _, Arity}) -> Arity.
 
