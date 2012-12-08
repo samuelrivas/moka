@@ -236,6 +236,7 @@ initial_funct_table() ->
       fun(Arity) ->
               [
                {{direct_external_call, Arity}, {unmoked, make_args(Arity)}},
+               {{indirect_external_call, Arity}, {unmoked, make_args(Arity)}},
                {{direct_undef_dependency, Arity}, {exception, {error, undef}}},
                {{indirect_undef_dependency, Arity}, {exception, {error, undef}}}
               ]
@@ -258,13 +259,17 @@ replaceable_method_table() ->
               [
                {{dest_module(), unimplemented, Arity},
                 affected_by_undef(Arity)},
+
                {{dest_module(), external_call, Arity},
-                [{direct_external_call, Arity}]}
+                affected_by_external(Arity)}
               ]
       end).
 
 affected_by_undef(Arity) ->
     [{direct_undef_dependency, Arity}, {indirect_undef_dependency, Arity}].
+
+affected_by_external(Arity) ->
+    [{direct_external_call, Arity}, {indirect_external_call, Arity}].
 
 replaced_spec_arity({_, _, Arity}) -> Arity.
 

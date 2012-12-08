@@ -33,6 +33,10 @@
          direct_external_call/1,
          direct_external_call/2,
 
+         indirect_external_call/0,
+         indirect_external_call/1,
+         indirect_external_call/2,
+
          direct_undef_dependency/0,
          direct_undef_dependency/1,
          direct_undef_dependency/2,
@@ -45,6 +49,10 @@
 direct_external_call()     -> moka_fsm_test_dest_module:external_call().
 direct_external_call(A)    -> moka_fsm_test_dest_module:external_call(A).
 direct_external_call(A, B) -> moka_fsm_test_dest_module:external_call(A, B).
+
+indirect_external_call()     -> redirect_to_external().
+indirect_external_call(A)    -> redirect_to_external(A).
+indirect_external_call(A, B) -> redirect_to_external(A, B).
 
 %% These functions directly depend on an unimplemented function
 direct_undef_dependency()     -> moka_fsm_test_dest_module:unimplemented().
@@ -61,3 +69,7 @@ indirect_undef_dependency(A, B) -> redirect_to_undef(A, B).
 redirect_to_undef()     -> moka_fsm_test_dest_module:unimplemented().
 redirect_to_undef(A)    -> moka_fsm_test_dest_module:unimplemented(A).
 redirect_to_undef(A, B) -> moka_fsm_test_dest_module:unimplemented(A, B).
+
+redirect_to_external()     -> moka_fsm_test_dest_module:external_call().
+redirect_to_external(A)    -> moka_fsm_test_dest_module:external_call(A).
+redirect_to_external(A, B) -> moka_fsm_test_dest_module:external_call(A, B).
