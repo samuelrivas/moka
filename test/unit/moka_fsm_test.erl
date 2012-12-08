@@ -232,14 +232,12 @@ is_moked_module(Module) ->
 %% done with Moka during the test, so the state will keep an updated version of
 %% this list
 initial_funct_table() ->
-    [
-     {{direct_undef_dependency, 0}, {exception, {error, undef}}},
-     {{direct_undef_dependency, 1}, {exception, {error, undef}}},
-     {{direct_undef_dependency, 2}, {exception, {error, undef}}},
-     {{indirect_undef_dependency, 0}, {exception, {error, undef}}},
-     {{indirect_undef_dependency, 1}, {exception, {error, undef}}},
-     {{indirect_undef_dependency, 2}, {exception, {error, undef}}}
-    ].
+    lists:flatten(
+      [[
+        {{direct_external_call     , Arity}, {unmoked, make_args(Arity)}},
+        {{direct_undef_dependency  , Arity}, {exception, {error, undef}}},
+        {{indirect_undef_dependency, Arity}, {exception, {error, undef}}}
+       ] || Arity <- lists:seq(0, 2)]).
 
 %% Returns a {function, arity} pair list
 all_test_methods(State) -> [X || {X, _} <- State#state.functions].

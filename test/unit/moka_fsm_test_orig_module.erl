@@ -29,6 +29,10 @@
 -module(moka_fsm_test_orig_module).
 
 -export([
+         direct_external_call/0,
+         direct_external_call/1,
+         direct_external_call/2,
+
          direct_undef_dependency/0,
          direct_undef_dependency/1,
          direct_undef_dependency/2,
@@ -37,6 +41,10 @@
          indirect_undef_dependency/1,
          indirect_undef_dependency/2
         ]).
+
+direct_external_call()     -> moka_fsm_test_dest_module:external_call().
+direct_external_call(A)    -> moka_fsm_test_dest_module:external_call(A).
+direct_external_call(A, B) -> moka_fsm_test_dest_module:external_call(A, B).
 
 %% These functions directly depend on an unimplemented function
 direct_undef_dependency()     -> moka_fsm_test_dest_module:unimplemented().
