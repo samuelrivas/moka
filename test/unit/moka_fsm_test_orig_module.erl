@@ -31,7 +31,11 @@
 -export([
          direct_undef_dependency/0,
          direct_undef_dependency/1,
-         direct_undef_dependency/2
+         direct_undef_dependency/2,
+
+         indirect_undef_dependency/0,
+         indirect_undef_dependency/1,
+         indirect_undef_dependency/2
         ]).
 
 %% These functions directly depends on an unimplemented function
@@ -39,6 +43,12 @@ direct_undef_dependency()     -> moka_fsm_test_dest_module:unimplemented().
 direct_undef_dependency(A)    -> moka_fsm_test_dest_module:unimplemented(A).
 direct_undef_dependency(A, B) -> moka_fsm_test_dest_module:unimplemented(A, B).
 
+indirect_undef_dependency()     -> redirect_to_undef().
+indirect_undef_dependency(A)    -> redirect_to_undef(A).
+indirect_undef_dependency(A, B) -> redirect_to_undef(A, B).
 
 %%% Private functions ------------------------------------------------
 
+redirect_to_undef()     -> moka_fsm_test_dest_module:unimplemented().
+redirect_to_undef(A)    -> moka_fsm_test_dest_module:unimplemented(A).
+redirect_to_undef(A, B) -> moka_fsm_test_dest_module:unimplemented(A, B).

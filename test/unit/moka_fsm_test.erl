@@ -235,7 +235,10 @@ initial_funct_table() ->
     [
      {{direct_undef_dependency, 0}, {exception, {error, undef}}},
      {{direct_undef_dependency, 1}, {exception, {error, undef}}},
-     {{direct_undef_dependency, 2}, {exception, {error, undef}}}
+     {{direct_undef_dependency, 2}, {exception, {error, undef}}},
+     {{indirect_undef_dependency, 0}, {exception, {error, undef}}},
+     {{indirect_undef_dependency, 1}, {exception, {error, undef}}},
+     {{indirect_undef_dependency, 2}, {exception, {error, undef}}}
     ].
 
 %% Returns a {function, arity} pair list
@@ -251,10 +254,13 @@ get_expected_result(Table, Call, Arity) ->
 %% replacement)
 replaceable_method_table() ->
     [
-     {{dest_module(), unimplemented, 0}, [{direct_undef_dependency, 0}]},
-     {{dest_module(), unimplemented, 1}, [{direct_undef_dependency, 1}]},
-     {{dest_module(), unimplemented, 2}, [{direct_undef_dependency, 2}]}
+     {{dest_module(), unimplemented, 0}, affected_by_undef(0)},
+     {{dest_module(), unimplemented, 1}, affected_by_undef(1)},
+     {{dest_module(), unimplemented, 2}, affected_by_undef(2)}
     ].
+
+affected_by_undef(Arity) ->
+    [{direct_undef_dependency, Arity}, {indirect_undef_dependency, Arity}].
 
 replaced_spec_arity({_, _, Arity}) -> Arity.
 
