@@ -223,8 +223,8 @@ pretty_print_step(Command, {{StateName, StateData}, Result}) ->
 pretty_print_state(StateName, StateData) ->
     io:format(
       "State     : ~p~n"
-      "State Data: ~p~n",
-      [StateName, StateData]).
+      "State Data: ~P~n",
+      [StateName, StateData, 5]).
 
 pretty_print_command({set, Var, {call, Mod, Fun, Args}}, Result) ->
     io:format("~p=~p:~p(", [Var,Mod, Fun]),
