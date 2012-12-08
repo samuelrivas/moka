@@ -43,8 +43,8 @@
 -type method_spec() :: {method_key(), ExpectedResult::term()}.
 
 -record(state, {
-          moka = none  :: none | moka:moka(),
-          methods = [] :: [method_spec()]
+          moka = none    :: none | moka:moka(),
+          functions = [] :: [method_spec()]
          }).
 
 %%%_* Exports ============================================================
@@ -60,13 +60,13 @@
 -export([initial/1, new/1, loaded/1]).
 
 %%% Transitions
--export([call/1, mock/2]).
+-export([call/1, replace/2]).
 
 %%%_* FSM Callbacks ====================================================
 
 initial_state() -> initial.
 
-initial_state_data() -> #state{methods = initial_method_table()}.
+initial_state_data() -> #state{functions = initial_funct_table()}.
 
 weight(_,_,_) -> 1.
 
@@ -80,14 +80,11 @@ precondition(_From, _Target, _State, _Call) -> true.
 %% Call postconditions take precedence over transition postconditions
 
 %% Call postconditions
-postcondition(_, Target, StateData, {call, _Module, call, [{Funct, Arity}]}, Res) ->
-    Table =
-        case Target of
-            loaded -> StateData#state.methods;
-            _      -> initial_method_table()
-        end,
-    Res =:= expected_result(Table, Funct, Arity);
-postcondition(_, _, _StateData, {call, _Module, mock, _Args}, Res) ->
+postcondition(_, loaded, StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
+    Res =:= get_expected_result(StateData#state.functions, Funct, Arity);
+postcondition(_, _, _StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
+    Res =:= get_expected_result(initial_funct_table(), Funct, Arity);
+postcondition(_, _, _StateData, {call, _Module, replace, _Args}, Res) ->
     Res =:= ok;
 
 %% Transition postconditions
@@ -103,30 +100,13 @@ next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
     State#state{moka = Res};
 next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
     State#state{
-      moka    = none,
-      methods = initial_method_table()
+      moka      = none,
+      functions = initial_funct_table()
      };
-next_state_data(_From, _Target, State, _Res, {call, _, mock, [_St, Method]}) ->
-    update_expected_results(State, Method);
+next_state_data(_From, _Target, State, _Res, {call, _, replace, [_, Spec]}) ->
+    replace_results(State, Spec);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
-
-update_expected_results(
-  State = #state{methods = Methods}, MokedMethod) ->
-    AffectedMethods = affected_results(MokedMethod),
-    Arity = moked_method_arity(MokedMethod),
-    NewResult = {moked, make_args(Arity)},
-    State#state{
-      methods =
-          lists:foldl(
-            fun({Fun, Expected}, Acc) ->
-                    case lists:member(Fun, AffectedMethods) of
-                        false -> [{Fun, Expected} | Acc];
-                        true  -> [{Fun, NewResult}]
-                    end
-            end, [], Methods)}.
-
-moked_method_arity({_, _, Arity}) -> Arity.
 
 %%%_* States ===========================================================
 
@@ -140,7 +120,7 @@ new(State) ->
     [
      {initial, {call, moka, stop, [State#state.moka]}},
      {new, test_method_call(State)},
-     {new, {call, ?MODULE, mock, [State#state.moka, mokable_method()]}},
+     {new, {call, ?MODULE, replace, [State#state.moka, mokable_method()]}},
      {loaded, {call, moka, load, [State#state.moka]}}
     ].
 
@@ -157,7 +137,7 @@ test_method_call(State) ->
 
 test_method(State) -> proper_types:elements(all_test_methods(State)).
 
-mokable_method() -> proper_types:elements(all_mokable_methods()).
+mokable_method() -> proper_types:elements(all_replaceable_methods()).
 
 %%%_* Transitions ======================================================
 
@@ -166,8 +146,8 @@ call({Function, Arity}) ->
     catch X:Y -> {exception, {X, Y}}
     end.
 
-mock(Moka, {Module, Function, Arity}) ->
-    moka:replace(Moka, Module, Function, mock_fun(Arity)).
+replace(Moka, {Module, Function, Arity}) ->
+    moka:replace(Moka, Module, Function, replacement_fun(Arity)).
 
 %%%_* Properties =======================================================
 
@@ -247,28 +227,54 @@ dest_module() -> moka_fsm_test_dest_module.
 is_moked_module(Module) ->
     lists:keymember(moka_orig_module, 1, Module:module_info(attributes)).
 
-initial_method_table() ->
+%% This table contains the functions that are subject to be called during this
+%% test. Note the expected result will change depending on the modifications
+%% done with Moka during the test, so the state will keep an updated version of
+%% this list
+initial_funct_table() ->
     [{{direct_undef_dependency, 0}, {exception, {error, undef}}}].
 
 %% Returns a {function, arity} pair list
-all_test_methods(State) -> [X || {X, _} <- State#state.methods].
+all_test_methods(State) -> [X || {X, _} <- State#state.functions].
 
-expected_result(Table, Call, Arity) ->
+get_expected_result(Table, Call, Arity) ->
     {_, Result} = sel_lists:keysearch({Call, Arity}, Table),
     Result.
 
-%% For simplicity, all moka funs return a list with the parameters, and we
-%% assume that affected functions will return that value directly
-mokable_method_table() ->
+%% This table contains the functions that are subject to be replaced with Moka
+%% and a list of the affected functions (i.e. functions subject to be called
+%% during the tests which expected result will change as a result of the
+%% replacement)
+replaceable_method_table() ->
     [{{dest_module(), unimplemented, 0}, [{direct_undef_dependency, 0}]}].
 
-all_mokable_methods() -> [X || {X, _} <- mokable_method_table()].
+replaced_spec_arity({_, _, Arity}) -> Arity.
 
-affected_results(MokedFunction) ->
-    {_, Affected} = sel_lists:keysearch(MokedFunction, mokable_method_table()),
+all_replaceable_methods() -> [X || {X, _} <- replaceable_method_table()].
+
+affected_by_replace(ReplacedFunction) ->
+    Table         = replaceable_method_table(),
+    {_, Affected} = sel_lists:keysearch(ReplacedFunction, Table),
     Affected.
+
+replace_results(State, ReplacedSpec) ->
+    AffectedFunctions = affected_by_replace(ReplacedSpec),
+    Arity             = replaced_spec_arity(ReplacedSpec),
+    NewResult         = {moked, make_args(Arity)},
+    replace_results(State, AffectedFunctions, NewResult).
+
+replace_results(State, AffectedFunctions, NewResult) ->
+    State#state{
+      functions =
+          lists:foldl(
+            fun({Fun, Expected}, Acc) ->
+                    case lists:member(Fun, AffectedFunctions) of
+                        false -> [{Fun, Expected} | Acc];
+                        true  -> [{Fun, NewResult}]
+                    end
+            end, [], State#state.functions)}.
 
 make_args(0) -> [];
 make_args(N) -> lists:seq(0, N).
 
-mock_fun(0) -> fun() -> {moked, []} end.
+replacement_fun(0) -> fun() -> {moked, []} end.
