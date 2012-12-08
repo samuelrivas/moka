@@ -73,8 +73,6 @@ initial_state_data() ->
        unexported = initial_unexported_table()
       }.
 
-weight(_,_,_) -> 1.
-
 precondition(_From, _Target, _State, _Call) -> true.
 
 %% Try not to loose the postcondition too much or we might lose bugs
@@ -127,6 +125,8 @@ next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
+weight(_, initial, _) -> 1;
+weight(_, _, _)       -> 10.
 %%%_* States ===========================================================
 
 initial(State) ->
