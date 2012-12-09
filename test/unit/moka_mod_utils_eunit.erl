@@ -97,7 +97,7 @@ modify_internal_call_test_() ->
               [?_assertEqual({internal_result, 10}, Module:call_to_internal()),
 
                ?_test(moka_mod_utils:load_abs_code(
-                        Module, modify_internal_call(AbsCode))),
+                        Module, modify_local_call(AbsCode))),
 
                ?_assertEqual({argument, 10}, Module:call_to_internal())]}
      end}.
@@ -167,8 +167,8 @@ modify_mult_call(AbsCode) ->
       {?MODULE, hook_in, [factors, '$args']},
       AbsCode).
 
-modify_internal_call(AbsCode) ->
-    moka_mod_utils:replace_internal_calls(
+modify_local_call(AbsCode) ->
+    moka_mod_utils:replace_local_calls(
       {internal_fun, 1},
       {?MODULE, hook_in, [argument, '$args']},
       AbsCode).
