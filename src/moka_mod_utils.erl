@@ -37,10 +37,11 @@
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
-         replace_remote_calls/3, to_str/1, export/3]).
+         replace_remote_calls/3, replace_local_calls/3, to_str/1, export/3]).
 
 -type forms()           :: [erl_parse:abstract_form()].
 -type remote_call()     :: {module(), atom(), Args::[term()]}.
+-type internal_call()   :: {atom(), Args::[term()]}.
 -opaque abstract_code() :: forms().
 
 -export_type([abstract_code/0]).
@@ -134,6 +135,40 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
                                   abstract_code().
 replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
     OldCall = {OldMod, {OldFun, Arity}},
+    Filter =
+        map_if_node_type(
+          application,
+          fun(Tree) ->
+                  case erl_syntax_lib:analyze_application(Tree) of
+                      What when What =:= OldCall -> replace(Tree, NewCall);
+                      _Other -> Tree
+                  end
+          end),
+    walk_and_filter(Filter, AbsCode).
+
+%% @doc Replaces internal function calls in `AbsCode'
+%%
+%% An element `$args' in the `Args' list of the {@link internal_call()} is
+%% replaced by the argument list in the old call.
+%%
+%% For example, if `AbsCode' represents a module `my_mod' containing next code:
+%% ```
+%% foo() ->
+%%    ...
+%%    bar(X).
+%% '''
+%% Next call will change `bar(X)' by
+%% `io:format("Args: ~p~n", [X])':
+%% ```
+%% moka_mod_utils:replace_internal_calls(
+%%    {bar, 1},
+%%    {io, format, ["Args: ~p~n", '$args']},
+%%    AbsCode)
+%% '''
+-spec replace_local_calls(mfa(), internal_call(), abstract_code()) ->
+                                    abstract_code().
+replace_local_calls({OldFun, Arity}, NewCall, AbsCode) ->
+    OldCall = {OldFun, Arity},
     Filter =
         map_if_node_type(
           application,
