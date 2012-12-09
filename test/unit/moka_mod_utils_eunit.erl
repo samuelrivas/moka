@@ -87,6 +87,21 @@ modify_remote_call_test_() ->
                ?_assertEqual(node(), Module:remote_bar())]}
      end}.
 
+modify_internal_call_test_() ->
+    Module = test_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([AbsCode]) ->
+             {inorder,
+              [?_assertEqual({internal_result, 10}, Module:call_to_internal()),
+
+               ?_test(moka_mod_utils:load_abs_code(
+                        Module, modify_internal_call(AbsCode))),
+
+               ?_assertEqual({argument, 10}, Module:call_to_internal())]}
+     end}.
+
 %% Test we can capture the arguments of the substituted call
 modify_remote_call_with_args_test_() ->
     Module = test_module(),
@@ -152,5 +167,12 @@ modify_mult_call(AbsCode) ->
       {?MODULE, hook_in, [factors, '$args']},
       AbsCode).
 
+modify_internal_call(AbsCode) ->
+    moka_mod_utils:replace_internal_calls(
+      {internal_fun, 1},
+      {?MODULE, hook_in, [argument, '$args']},
+      AbsCode).
+
 %% We inject this function in some tests
+hook_in(What, [A])    -> {What, A};
 hook_in(What, [A, B]) -> {What, A, B}.
