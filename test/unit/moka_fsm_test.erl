@@ -139,7 +139,7 @@ new(State) ->
     [
      {initial, {call, moka, stop, [State#state.moka]}},
      {new, test_method_call(State)},
-     {new, {call, ?MODULE, replace, [State#state.moka, mokable_method()]}},
+     {new, {call, ?MODULE, replace, [State#state.moka, replaceable_method()]}},
      {new, {call, ?MODULE, export, [State#state.moka, exportable_method()]}},
      {loaded, {call, moka, load, [State#state.moka]}}
     ].
@@ -157,7 +157,7 @@ test_method_call(State) ->
 
 test_method(State) -> proper_types:elements(all_test_methods(State)).
 
-mokable_method() -> proper_types:elements(all_replaceable_methods()).
+replaceable_method() -> proper_types:elements(all_replaceable_methods()).
 
 exportable_method() -> proper_types:elements(initial_unexported_table()).
 
@@ -169,7 +169,9 @@ call({Function, Arity}) ->
     end.
 
 replace(Moka, {Module, Function, Arity}) ->
-    moka:replace(Moka, Module, Function, replacement_fun(Arity)).
+    moka:replace(Moka, Module, Function, replacement_fun(Arity));
+replace(Moka, {Function, Arity}) ->
+    moka:replace(Moka, Function, replacement_fun(Arity)).
 
 export(Moka, {Module, Arity}) -> moka:export(Moka, Module, Arity).
 
@@ -307,7 +309,9 @@ replaceable_method_table() ->
                 affected_by_undef(Arity)},
 
                {{dest_module(), external_call, Arity},
-                affected_by_external(Arity)}
+                affected_by_external(Arity)},
+
+               {{internal_call, Arity}, [{call_to_internal, Arity}]}
               ]
       end).
 
@@ -325,6 +329,7 @@ affected_by_external(Arity) ->
      {indirect_external_call, Arity}
     ].
 
+replaced_spec_arity({_, Arity})    -> Arity;
 replaced_spec_arity({_, _, Arity}) -> Arity.
 
 all_replaceable_methods() -> [X || {X, _} <- replaceable_method_table()].
