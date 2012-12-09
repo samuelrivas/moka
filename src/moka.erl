@@ -26,6 +26,13 @@
 %%%
 %%% This module implements the operations to create new mokas and use them to
 %%% mock calls from one module to other.
+%%%
+%%% Note the `replace' functions replace the function calls, not the functions
+%%% themselves. Thus you can still call the original function in the target
+%%% module after using {@link replace/4} to substitute the calls from the moked
+%%% module. Also, if you export a function with {@link export/3} you always will
+%%% have access to the original behaviour, even if you have substituted all
+%%% internal calls to it with {@link replace/3}.
 
 -module(moka).
 
