@@ -126,7 +126,7 @@ to_str(AbsCode) -> erl_prettypr:format(erl_syntax:form_list(AbsCode)).
 %% `io:format("Args: ~p~n", [X])':
 %% ```
 %% moka_mod_utils:replace_remote_calls(
-%%    {other_module, bar, 0},
+%%    {other_module, bar, 1},
 %%    {io, format, ["Args: ~p~n", '$args']},
 %%    AbsCode)
 %% '''
