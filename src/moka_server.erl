@@ -127,6 +127,19 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
        abs_code =
            modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode)}};
 
+safe_handle_call({replace, Function, NewBehaviour}, _From, State) ->
+    Count          = State#state.handler_count,
+    AbsCode        = State#state.abs_code,
+    Module         = State#state.module,
+    HandlerName    = start_call_handler(Module, NewBehaviour, Count),
+    {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
+
+    {reply, ok,
+     State#state{
+       handler_count = Count + 1,
+       abs_code =
+           modify_call_in_code(Function, Arity, HandlerName, AbsCode)}};
+
 safe_handle_call({export, Function, Arity}, _From, State) ->
     AbsCode = State#state.abs_code,
     {reply, ok,
@@ -168,8 +181,16 @@ call_handler_name(Module, Count) ->
 modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
       {Module, Function, Arity},
-      {moka_call_handler, get_response, [HandlerName, '$args']},
+      call_handler_call(HandlerName),
       AbsCode).
+
+modify_call_in_code(Function, Arity, HandlerName, AbsCode) ->
+    moka_mod_utils:replace_local_calls(
+      {Function, Arity},
+      call_handler_call(HandlerName),
+      AbsCode).
+
+call_handler_call(Name) -> {moka_call_handler, get_response, [Name, '$args']}.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
