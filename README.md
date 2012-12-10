@@ -21,7 +21,7 @@ Of course, mocking with either Moka's or Meck's approach is grossly equivalent
 in many situations. However, we think that modifying the caller module instead
 of the called module is a cleaner and safer.
 
-The main motivation for building Moka is that it allows us to mock (or "mok")
+The main motivation for building Moka is that it allows us to mock (or _mok_)
 modules that are used by other modules we cannot control during our testing.
 Good examples are `file:read`, or `erlang:now`. If you try to mock those with
 Meck, you will most likely break something in your system (e.g. Meck itself may
