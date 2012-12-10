@@ -42,6 +42,8 @@ This is a list of the main Moka capabilities, linked to their acceptance tests:
 
  * Replace static, fully-qualified calls with a fun
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mok_system_functions.erl)
+ * Replace internal function calls with a fun
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mok_internal_functions.erl)
  * Make internal functions available for testing
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/dynamic_exports.erl)
 
