@@ -61,8 +61,15 @@ make all
 
 To check everything works as expected, `make test` should run the
 test cases successfully with a coverage about 80%. You will get some cover
-warnings like those, as Moka don't play well with cover yet (cover fails for
-those modules that are moked as part of the testing process).
+warnings like these:
+```
+ERROR: Cover analyze failed for dynamic_exports_aux: {not_cover_compiled,
+                                                     dynamic_exports_aux}
+       "/home/samuel/.../moka/.eunit/dynamic_exports_aux.beam"
+```
+
+This is because Moka doesn't play well with cover yet (cover fails for the
+modules that are moked as part of the testing process).
 
 `make check` will run static checks on the code. Currently it just runs some
 predefined xref analysis.
