@@ -150,10 +150,7 @@ more :))
  * [![Build
    Status](https://secure.travis-ci.org/samuelrivas/moka.png?branch=develop)](http://travis-ci.org/samuelrivas/moka)
    the `develop` branch points to the latest merged change. This branch always
-   contains `master`. It is not possible to re-run [Travis
-   CI](https://travis-ci.org/) for non master branches, so this branch may be
-   red because an eventual failure of the Travis machinery until a new commit is
-   merged
+   contains `master`
 
 Both `master` and `develop` are safe to branch off and rebase on as they are
 guaranteed not to change their history or be ever deleted. Any other branch is
