@@ -53,7 +53,7 @@
 %% @doc Returns the object code of a loadable module
 %%
 %% Independently of whether the module is loaded, this function fails if the
-%% object module cannot be loaded again (i.e. if the beam file is not int the
+%% object module cannot be loaded again (i.e. if the beam file is not in the
 %% load path).
 %%
 %% @throws {cannot_get_object_code, Module}
