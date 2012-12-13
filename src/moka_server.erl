@@ -118,7 +118,7 @@ handle_call(Request, From, State) ->
 safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
     Count          = State#state.handler_count,
     AbsCode        = State#state.abs_code,
-    HandlerName    = start_call_handler(Module, NewBehaviour, Count),
+    HandlerName    = start_call_handler(NewBehaviour, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
 
     {reply, ok,
@@ -130,8 +130,7 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
 safe_handle_call({replace, Function, NewBehaviour}, _From, State) ->
     Count          = State#state.handler_count,
     AbsCode        = State#state.abs_code,
-    Module         = State#state.module,
-    HandlerName    = start_call_handler(Module, NewBehaviour, Count),
+    HandlerName    = start_call_handler(NewBehaviour, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
 
     {reply, ok,
@@ -170,13 +169,13 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-start_call_handler(Module, Behaviour, Count) ->
-    HandlerName = call_handler_name(Module, Count),
+start_call_handler(Behaviour, Count) ->
+    HandlerName = call_handler_name(Count),
     moka_call_handler:start_link(HandlerName, Behaviour),
     HandlerName.
 
-call_handler_name(Module, Count) ->
-    list_to_atom(lists:flatten(io_lib:format("~p_~p", [Module, Count]))).
+call_handler_name(Count) ->
+    list_to_atom(lists:flatten(io_lib:format("moka_call_handler_~p", [Count]))).
 
 modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
