@@ -72,12 +72,13 @@ stop(MokaServ) -> sel_gen_server:call(MokaServ, stop).
 %% @doc Use {@link moka:replace/3}
 -spec replace(moka_server(), atom(), fun()) -> ok.
 replace(MokaServ, Function, NewBehaviour) ->
-    sel_gen_server:call(MokaServ, {replace, Function, NewBehaviour}).
+    sel_gen_server:call(MokaServ, {replace, {local, Function}, NewBehaviour}).
 
 %% @doc Use {@link moka:replace/4}
 -spec replace(moka_server(), module(), atom(), fun()) -> ok.
 replace(MokaServ, Module, Function, NewBehaviour) ->
-    sel_gen_server:call(MokaServ, {replace, Module, Function, NewBehaviour}).
+    sel_gen_server:call(
+      MokaServ, {replace, {external, Module, Function}, NewBehaviour}).
 
 %% @doc Use {@link moka:export/3}
 -spec export(moka_server(), atom(), non_neg_integer()) -> ok.
@@ -115,7 +116,7 @@ handle_call(Request, From, State) ->
             {stop, Error, {error, Error}, State}
     end.
 
-safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
+safe_handle_call({replace, ReplaceSpec, NewBehaviour}, _From, State) ->
     Count          = State#state.handler_count,
     AbsCode        = State#state.abs_code,
     HandlerName    = start_call_handler(NewBehaviour, Count),
@@ -125,19 +126,7 @@ safe_handle_call({replace, Module, Function, NewBehaviour}, _From, State) ->
      State#state{
        handler_count = Count + 1,
        abs_code =
-           modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode)}};
-
-safe_handle_call({replace, Function, NewBehaviour}, _From, State) ->
-    Count          = State#state.handler_count,
-    AbsCode        = State#state.abs_code,
-    HandlerName    = start_call_handler(NewBehaviour, Count),
-    {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
-
-    {reply, ok,
-     State#state{
-       handler_count = Count + 1,
-       abs_code =
-           modify_call_in_code(Function, Arity, HandlerName, AbsCode)}};
+           modify_call_in_code(ReplaceSpec, Arity, HandlerName, AbsCode)}};
 
 safe_handle_call({export, Function, Arity}, _From, State) ->
     AbsCode = State#state.abs_code,
@@ -177,15 +166,14 @@ start_call_handler(Behaviour, Count) ->
 call_handler_name(Count) ->
     list_to_atom(lists:flatten(io_lib:format("moka_call_handler_~p", [Count]))).
 
-modify_call_in_code(Module, Function, Arity, HandlerName, AbsCode) ->
+modify_call_in_code({external, Mod, Funct}, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
-      {Module, Function, Arity},
+      {Mod, Funct, Arity},
       call_handler_call(HandlerName),
-      AbsCode).
-
-modify_call_in_code(Function, Arity, HandlerName, AbsCode) ->
+      AbsCode);
+modify_call_in_code({local, Funct}, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_local_calls(
-      {Function, Arity},
+      {Funct, Arity},
       call_handler_call(HandlerName),
       AbsCode).
 
