@@ -24,7 +24,7 @@
 
 %%% @doc Unit tests for {@link moka_call_handler}
 
--module(moka_call_handler_eunit).
+-module(moka_call_handler_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 

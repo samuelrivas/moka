@@ -24,7 +24,7 @@
 
 %%% @doc Unit tests for {@link moka_mod_utils}
 
--module(moka_mod_utils_eunit).
+-module(moka_mod_utils_tests).
 
 -export([hook_in/2]).
 
