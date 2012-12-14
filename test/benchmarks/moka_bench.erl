@@ -28,6 +28,19 @@ moka_create_destroy_bench(Times) ->
     done -> ok
   end.
 
+meck_create_destroy_bench(Times) ->
+  Self = self(),
+  spawn_link(
+    fun() ->
+        {Microsecs, _} = timer:tc(fun() -> meck_power_cycle(Times) end),
+        io:format(
+          "~.2f cycles per second~n~.2f millisecs per cycle~n",
+          [Times*1000000/Microsecs, Microsecs/(Times*1000)]),
+        Self ! done
+    end),
+  receive
+    done -> ok
+  end.
 
 %%%_* Private Functions ================================================
 
@@ -37,6 +50,12 @@ moka_power_cycle(Times) ->
   moka:load(Moka),
   moka:stop(Moka),
   moka_power_cycle(Times - 1).
+
+meck_power_cycle(0)     -> ok;
+meck_power_cycle(Times) ->
+  meck:new(target_module()),
+  meck:unload(target_module()),
+  meck_power_cycle(Times - 1).
 
 %% You need this module compiled with debug info in the code path
 target_module() -> eunit.
