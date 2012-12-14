@@ -14,6 +14,7 @@
 %%%_* API ==============================================================
 moka_create_destroy_bench(Times) ->
   sel_application:start_app(moka),
+  moka_mod_utils:restore_module(target_module()),
   Self = self(),
   spawn_link(
     fun() ->
