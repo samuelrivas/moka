@@ -117,6 +117,57 @@ moka_sequential_call_bench(Times) ->
   end,
   moka:stop(Moka).
 
+moka_parallel_call_bench(Times, Batch) ->
+  Self = self(),
+  Target = actual_target_module(),
+  Moka = moka:start(Target),
+  moka:replace(Moka, dest_module, call1, fun(_) -> baz end),
+  moka:load(Moka),
+  spawn_link(
+    fun() ->
+        {Microsecs, _} = timer:tc(fun() -> parallel_do_call(Times, Batch) end),
+        io:format(
+          "~.2f cycles per milisec~n~.2f microsecs per cycle~n",
+          [Times*1000/Microsecs, Microsecs/Times]),
+        Self ! done
+    end),
+  receive
+    done -> ok
+  end,
+  moka:stop(Moka).
+
+meck_parallel_call_bench(Times, Batch) ->
+  Self = self(),
+  Target = actual_target_module(),
+  meck:new(Target),
+  meck:expect(Target, call1, fun(_) -> baz end),
+  spawn_link(
+    fun() ->
+        {Microsecs, _} = timer:tc(fun() -> parallel_do_call(Times, Batch) end),
+        io:format(
+          "~.2f cycles per milisec~n~.2f microsecs per cycle~n",
+          [Times*1000/Microsecs, Microsecs/Times]),
+        Self ! done
+    end),
+  receive
+    done -> ok
+  end,
+  meck:unload().
+
+unmocked_parallel_call_bench(Times, Batch) ->
+  Self = self(),
+  spawn_link(
+    fun() ->
+        {Microsecs, _} = timer:tc(fun() -> parallel_do_call(Times, Batch) end),
+        io:format(
+          "~.2f cycles per milisec~n~.2f microsecs per cycle~n",
+          [Times*1000/Microsecs, Microsecs/Times]),
+        Self ! done
+    end),
+  receive
+    done -> ok
+  end.
+
 %%%_* Private Functions ================================================
 
 moka_power_cycle(0)     -> ok;
@@ -131,6 +182,26 @@ meck_power_cycle(Times) ->
   meck:new(dummy_target_module()),
   meck:unload(dummy_target_module()),
   meck_power_cycle(Times - 1).
+
+parallel_do_call(N, _) when N =< 0-> ok;
+parallel_do_call(Times, Batch) ->
+  Size = erlang:min(Times, Batch),
+  Self = self(),
+  Pids = [spawn(
+            fun() ->
+                Target = actual_target_module(),
+                Target:call1(dontcare),
+                Self ! done
+            end)
+          || _ <- lists:seq(1, Size)],
+  receive_dones(Pids),
+  parallel_do_call(Times - Size, Batch).
+
+receive_dones([]) -> ok;
+receive_dones([_|T]) ->
+  receive
+    done -> receive_dones(T)
+  end.
 
 do_call(0) -> ok;
 do_call(Times) ->
