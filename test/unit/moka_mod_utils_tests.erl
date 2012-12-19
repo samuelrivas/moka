@@ -135,12 +135,42 @@ export_unexported_functions_test_() ->
                ?_assertEqual({internal_result, 2}, Module:internal_fun(2))]}
      end}.
 
+%% Test we can load code for a module even if the code was never loaded (former
+%% bug)
+%%
+%% NOTE even without fixing the bug this test targets, this test fails only if
+%% unloaded_module was never loaded in the VM as then code:delete returns
+%% false. Once a module has been loaded for the first time, a new entry in the
+%% module table is created forever and code:delete will succeed unless the code
+%% needs purging. Thus we cannot use the same module as we use for the rest of
+%% the tests, and we depend on that module never being loaded before for this
+%% test to be meaningful. Also, take into account that running this test twice
+%% in the same VM makes no sense as a successful run will load the module and
+%% invalidate next calls to this test
+%%
+%% Note also that rebar seems to be pre-loading all test modules, so this test
+%% will always pass when run through make test
+%%
+%% TODO find the way of removing all those preconditions on the state the VM
+%% should be before running this test, it is pretty useless from the Continuous
+%% Integration perspective
+can_load_code_test_() ->
+    Module = unloaded_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([AbsCode]) ->
+             ?_assertEqual(ok, moka_mod_utils:load_abs_code(Module, AbsCode))
+     end}.
+
 %%%===================================================================
 %%% Internals
 %%%===================================================================
 test_module() -> moka_test_module.
 
 test_module2() -> moka_test_module2.
+
+unloaded_module() -> moka_test_unloaded_module.
 
 %% We assume this module doesn't exist
 fake_module() -> moka_fake_mod.
