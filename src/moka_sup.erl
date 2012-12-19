@@ -32,7 +32,7 @@
 -behaviour(supervisor).
 
 %%%_* Exports ==========================================================
--export([start_link/3]).
+-export([start_link/4]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -40,15 +40,17 @@
 %%%_* API ==============================================================
 
 %% @doc Starts a supervisor for a new moka
--spec start_link(atom(), atom(), module()) -> {ok, pid()} | {error, term()}.
-start_link(SupName, MokaName, MokedModule) ->
-    supervisor:start_link({local, SupName}, ?MODULE, {MokaName, MokedModule}).
+-spec start_link(atom(), atom(), module(), moka_mod_utils:abstract_code()) ->
+                        {ok, pid()} | {error, term()}.
+start_link(SupName, MokaName, MokedModule, AbsCode) ->
+    supervisor:start_link(
+      {local, SupName}, ?MODULE, {MokaName, MokedModule, AbsCode}).
 
 %%%_* Exported Internals ================================================
 
 %% @private
-init({MokaName, MokedModule}) ->
-    {ok, {supervisor_spec(), [moka_spec(MokaName, MokedModule)]}}.
+init({MokaName, MokedModule, AbsCode}) ->
+    {ok, {supervisor_spec(), [moka_spec(MokaName, MokedModule, AbsCode)]}}.
 
 %%%_* Private Functions ================================================
 
@@ -57,10 +59,10 @@ supervisor_spec() ->
     MaxSecondsBetweenRestarts = 1,
     {one_for_all, MaxRestarts, MaxSecondsBetweenRestarts}.
 
-moka_spec(Name, Module) ->
+moka_spec(Name, Module, AbsCode) ->
     Restart = permanent,
     Shutdown = 2000,
-    MFA = {moka_server, start_link, [Name, Module]},
+    MFA = {moka_server, start_link, [Name, Module, AbsCode]},
     {moka, MFA, Restart, Shutdown, worker, [moka_server]}.
 
 %%%_* Emacs ============================================================

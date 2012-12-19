@@ -64,8 +64,9 @@
 %% @todo Avoid the possibility of creating two mokas for the same module.
 -spec start(module()) -> moka().
 start(Mod) when is_atom(Mod) ->
+    AbsCode = moka_mod_utils:get_abs_code(Mod),
     MokaName = moka_name(Mod),
-    moka_main_sup:start_moka(MokaName, Mod),
+    moka_main_sup:start_moka(MokaName, Mod, AbsCode),
     MokaName.
 
 %% @doc Stops an existing moka

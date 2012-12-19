@@ -7,7 +7,7 @@
 -behaviour(supervisor).
 
 %%%_* Exports ==========================================================
--export([start_link/0, start_moka/2, stop_moka/1, stop_all/0]).
+-export([start_link/0, start_moka/3, stop_moka/1, stop_all/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,12 +22,12 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc Starts a new moka process tree
--spec start_moka(atom(), module()) -> ok.
-start_moka(MokaName, MokedModule) ->
+-spec start_moka(atom(), module(), moka_mod_utils:abtract_code()) -> ok.
+start_moka(MokaName, MokedModule, AbsCode) ->
     SupName = sup_name(MokaName),
     crashfy:untuple(
       supervisor:start_child(
-        ?MODULE, moka_sup_spec(SupName, MokaName, MokedModule))).
+        ?MODULE, moka_sup_spec(SupName, MokaName, MokedModule, AbsCode))).
 
 %% @doc Stops all started mokas
 %%
@@ -59,10 +59,10 @@ supervisor_spec() ->
     MaxSecondsBetweenRestarts = 1,
     {one_for_one, MaxRestarts, MaxSecondsBetweenRestarts}.
 
-moka_sup_spec(SupName, MokaName, MokedModule) ->
+moka_sup_spec(SupName, MokaName, MokedModule, AbsCode) ->
     Restart = temporary,
     Shutdown = 2000,
-    MFA = {moka_sup, start_link, [SupName, MokaName, MokedModule]},
+    MFA = {moka_sup, start_link, [SupName, MokaName, MokedModule, AbsCode]},
     {SupName, MFA, Restart, Shutdown, supervisor, [moka_sup]}.
 
 sup_name(MokaName) ->

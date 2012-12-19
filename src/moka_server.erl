@@ -34,7 +34,7 @@
 -behaviour(gen_server).
 
 %%%_* Exports ==========================================================
--export([start_link/2, stop/1, replace/3, replace/4, export/3, load/1]).
+-export([start_link/3, stop/1, replace/3, replace/4, export/3, load/1]).
 
 %% This function should only be used for debugging moka
 -deprecated([{stop, 1}]).
@@ -58,10 +58,11 @@
 %%%_* API ==============================================================
 
 %% @doc Use {@link moka:start/2}
--spec start_link(moka_server(), module()) ->
+-spec start_link(moka_server(), module(), moka_mod_utils:abstract_code()) ->
                         {ok, pid()} | ignore | {error, term()}.
-start_link(ServerName, MokedMod) ->
-    gen_server:start_link({local, ServerName}, ?MODULE, MokedMod, []).
+start_link(ServerName, Module, AbsCode) ->
+    gen_server:start_link(
+      {local, ServerName}, ?MODULE, {Module, AbsCode}, []).
 
 %% @doc Stops a moka server
 %%
@@ -92,13 +93,13 @@ load(MokaServ) -> sel_gen_server:call(MokaServ, load).
 %%%_* gen_server callbacks =============================================
 
 %% @private
-init(Mod) ->
+init({Mod, AbsCode}) ->
     try
         %% needed to have terminate run before the server dies
         process_flag(trap_exit, true),
         {ok, #state{
            module = Mod,
-           abs_code = moka_mod_utils:get_abs_code(Mod)
+           abs_code = AbsCode
           }}
     catch
         Excpt -> {stop, {Excpt, erlang:get_stacktrace()}}
