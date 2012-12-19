@@ -190,6 +190,7 @@ replace_local_calls({OldFun, Arity}, NewCall, AbsCode) ->
 %% cannot be loaded. This will make {@link load_abs_code/2} fail.
 -spec export(atom(), non_neg_integer(), abstract_code()) -> abstract_code().
 export(Funct, Arity, AbsCode) ->
+    assert_defined_function(Funct, Arity, AbsCode),
     Filter =
         map_if_node_type(
           attribute,
@@ -304,3 +305,20 @@ map_if_node_type(Type, SubsFun) ->
     end.
 
 attribute_name(Tree) -> erl_syntax:atom_value(erl_syntax:attribute_name(Tree)).
+
+assert_defined_function(Funct, Arity, AbsCode) ->
+    case is_defined_function(Funct, Arity, AbsCode) of
+        true  -> ok;
+        false -> throw({undefined_function, {Funct, Arity}})
+    end.
+
+is_defined_function(Funct, Arity, AbsCode) ->
+    Tree = erl_syntax:form_list(AbsCode),
+    erl_syntax_lib:fold_subtrees(
+      fun (SubTree, Found) ->
+              case erl_syntax_lib:analyze_form(SubTree) of
+                  {function, {Funct, Arity}} -> true;
+                  _                          -> Found
+              end
+      end,
+      false, Tree).
