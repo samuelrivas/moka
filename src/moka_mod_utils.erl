@@ -260,22 +260,13 @@ handle_load_result(Module, {error, Reason}) ->
 %% We try to be careful not to kill any process lingering with old code as this
 %% can lead to very difficult do debug failing test cases. In case there are
 %% lingering processes moka will refuse to load new code
+%%
+%% Note this is not entirely safe as other processes can reload the old code in
+%% parallel before we load the new version
 unload(Module) ->
-    safe_purge(Module),
-    delete(Module).
-
-safe_purge(Module) ->
     case code:soft_purge(Module) of
         true -> ok;
         false -> throw({processes_using_old_code, Module})
-    end.
-
-delete(Module) ->
-    case code:delete(Module) of
-        true -> ok;
-        false ->
-            %% This is either a bug or a concurrency problem
-            erlang:error({cannot_delete_code, Module})
     end.
 
 replace(ApplicTree, {M, F, Args}) ->
