@@ -135,6 +135,18 @@ export_unexported_functions_test_() ->
                ?_assertEqual({internal_result, 2}, Module:internal_fun(2))]}
      end}.
 
+%% Test we cannot export non-existing functions
+export_unexported_functions_fail_test_() ->
+    Module = test_module(),
+    {setup,
+     setup_get_forms([Module]),
+     cleanup_restore_modules([Module]),
+     fun([AbsCode]) ->
+             ?_assertThrow(
+                {undefined_function, {no_defined, 0}},
+                moka_mod_utils:export(no_defined, 0, AbsCode))
+     end}.
+
 %% Test we can load code for a module even if the code was never loaded (former
 %% bug)
 %%
