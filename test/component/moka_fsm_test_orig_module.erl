@@ -28,6 +28,7 @@
 
 -module(moka_fsm_test_orig_module).
 
+%% We use these functions to check the moking behaviour
 -export([
          call_to_internal/0,
          call_to_internal/1,
@@ -50,14 +51,31 @@
          indirect_undef_dependency/2
         ]).
 
+%% These functions are for specific testing purposes
+-export([get_history/0]).
+
+%%% Functions to assist testing --------------------------------------
+
+%% The fsm tests mok this function to return the history a moked function can
+%% view. Note this is slightly different to directly getting the history from
+%% moka, as the moked function runs in a different environment
+get_history() -> internal_get_history().
+
+internal_get_history() -> erlang:error(not_moked).
+
+%%% Functions to test moking -----------------------------------------
+
+%% Directly call to an internal function that returns a predefined value
 call_to_internal()     -> internal_call().
 call_to_internal(A)    -> internal_call(A).
 call_to_internal(A, B) -> internal_call(A, B).
 
+%% Directly call to functions in other modules
 direct_external_call()     -> moka_fsm_test_dest_module:external_call().
 direct_external_call(A)    -> moka_fsm_test_dest_module:external_call(A).
 direct_external_call(A, B) -> moka_fsm_test_dest_module:external_call(A, B).
 
+%% Call to an internal function that calls to other modules
 indirect_external_call()     -> redirect_to_external().
 indirect_external_call(A)    -> redirect_to_external(A).
 indirect_external_call(A, B) -> redirect_to_external(A, B).

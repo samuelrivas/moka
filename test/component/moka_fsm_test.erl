@@ -61,7 +61,7 @@
 -export([initial/1, new/1, loaded/1]).
 
 %%% Transitions
--export([call/1, replace/2, export/2]).
+-export([start/1, call/1, replace/2, export/2, get_moked_history/0]).
 
 %%%_* FSM Callbacks ====================================================
 
@@ -131,7 +131,7 @@ weight(_, _, _)       -> 10.
 
 initial(State) ->
     [
-     {new, {call, moka, start, [origin_module()]}},
+     {new, {call, ?MODULE, start, [origin_module()]}},
      {initial, test_method_call(State)}
     ].
 
@@ -147,7 +147,8 @@ new(State) ->
 loaded(State) ->
     [
      {initial, {call, moka, stop, [State#state.moka]}},
-     {loaded, test_method_call(State)}
+     {loaded, test_method_call(State)},
+     {loaded, {call, ?MODULE, get_moked_history, []}}
     ].
 
 test_method_call(State) ->
@@ -163,6 +164,14 @@ exportable_method() -> proper_types:elements(initial_unexported_table()).
 
 %%%_* Transitions ======================================================
 
+start(Module) ->
+    Moka = moka:start(Module),
+    setup_get_history(Moka),
+    Moka.
+
+setup_get_history(Moka) ->
+    moka:replace(Moka, internal_get_history, fun() -> ok end).
+
 call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
     catch X:Y -> {exception, {X, Y}}
@@ -174,6 +183,10 @@ replace(Moka, {Function, Arity}) ->
     moka:replace(Moka, Function, replacement_fun(Arity)).
 
 export(Moka, {Module, Arity}) -> moka:export(Moka, Module, Arity).
+
+get_moked_history() ->
+    M = origin_module(),
+    M:get_history().
 
 %%%_* Properties =======================================================
 
