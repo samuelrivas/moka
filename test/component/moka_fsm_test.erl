@@ -44,6 +44,7 @@
 
 -record(state, {
           moka       = none :: none | moka:moka(),
+          history    = [],
           functions  = []   :: [method_spec()],
           unexported = []   :: [method_key()]
          }).
@@ -95,10 +96,12 @@ postcondition(_, _, _StateData, {call, _, call, [{Funct, Arity}]}, Res) ->
               initial_unexported_table(),
               Funct,
               Arity);
-postcondition(_, _, _StateData, {call, _Module, replace, _Args}, Res) ->
+postcondition(_, _, _StateData, {call, _Mod, replace, _Args}, Res) ->
     Res =:= ok;
-postcondition(_, _, _StateData, {call, _Module, export, _Args}, Res) ->
+postcondition(_, _, _StateData, {call, _Mod, export, _Args}, Res) ->
     Res =:= ok;
+postcondition(_, _, StateData, {call, _Mod, get_moked_history, _Args}, Res) ->
+    Res =:= StateData#state.history;
 
 %% Transition postconditions
 postcondition(initial, new, _StateData, _Call, _Res) ->
@@ -122,6 +125,9 @@ next_state_data(_From, _Target, State, _Res, {call, _, replace, [_, Spec]}) ->
 next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
     Unexported = State#state.unexported,
     State#state{unexported = Unexported -- [Spec]};
+next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
+    History = State#state.history,
+    State#state{history = History ++ [Func, make_args(Arity), Res]};
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
@@ -170,7 +176,7 @@ start(Module) ->
     Moka.
 
 setup_get_history(Moka) ->
-    moka:replace(Moka, internal_get_history, fun() -> ok end).
+    moka:replace(Moka, internal_get_history, fun() -> [] end).
 
 call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
