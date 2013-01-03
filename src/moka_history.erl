@@ -1,4 +1,4 @@
-%%% Copyright (c) 2012, Samuel Rivas <samuelrivas@gmail.com>
+%%% Copyright (c) 2013, Samuel Rivas <samuelrivas@gmail.com>
 %%% All rights reserved.
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions are met:
@@ -22,56 +22,56 @@
 %%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-%%% @copyright 2012 Samuel Rivas
-%%% @doc Supervisor to hold each moka
-%%%
-%%% Each moka is held by one instance of this supervisor, along with all the
-%%% instantiated call handlers
--module(moka_sup).
+%%% @doc A server to hold the call history for a moka
+-module(moka_history).
 
--behaviour(supervisor).
+-behaviour(gen_server).
 
 %%%_* Exports ==========================================================
--export([start_link/4]).
 
-%% Supervisor callbacks
--export([init/1]).
+%% API
+-export([start_link/0]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
+
+
+%%%_* Includes =========================================================
+
+%%%_* Types ============================================================
+-record(state, {
+          calls = [] :: [history_entry()]
+         }).
+
+-type history_entry() :: {Funct::atom(), Args::[any()], Return::any()}.
 
 %%%_* API ==============================================================
 
-%% @doc Starts a supervisor for a new moka
--spec start_link(atom(), atom(), module(), moka_mod_utils:abstract_code()) ->
-                        {ok, pid()} | {error, term()}.
-start_link(SupName, MokaName, MokedModule, AbsCode) ->
-    supervisor:start_link(
-      {local, SupName}, ?MODULE, {MokaName, MokedModule, AbsCode}).
+start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, none, []).
 
-%%%_* Exported Internals ================================================
+%%%_* gen_server callbacks =============================================
 
 %% @private
-init({MokaName, MokedModule, AbsCode}) ->
-    {ok,
-     {supervisor_spec(),
-      [moka_spec(MokaName, MokedModule, AbsCode), history_spec()]}}.
+init(none) -> {ok, #state{}}.
+
+%% @private
+handle_call(Request, _From, State) ->
+    {reply, {error, {bad_call, Request}}, State}.
+
+%% @private
+handle_cast(_Msg, State) -> {noreply, State}.
+
+%% @private
+handle_info(_Info, State) -> {noreply, State}.
+
+%% @private
+terminate(_Reason, _State) -> ok.
+
+%% @private
+code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private Functions ================================================
-
-supervisor_spec() ->
-    MaxRestarts = 0,
-    MaxSecondsBetweenRestarts = 1,
-    {one_for_all, MaxRestarts, MaxSecondsBetweenRestarts}.
-
-moka_spec(Name, Module, AbsCode) ->
-    Restart = permanent,
-    Shutdown = 2000,
-    MFA = {moka_server, start_link, [Name, Module, AbsCode]},
-    {moka_server, MFA, Restart, Shutdown, worker, [moka_server]}.
-
-history_spec() ->
-    Restart = permanent,
-    Shutdown = 2000,
-    MFA = {moka_history, start_link, []},
-    {moka_history, MFA, Restart, Shutdown, worker, [moka_history]}.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:

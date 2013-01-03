@@ -98,8 +98,8 @@ init({Mod, AbsCode}) ->
         %% needed to have terminate run before the server dies
         process_flag(trap_exit, true),
         {ok, #state{
-           module = Mod,
-           abs_code = AbsCode
+                module   = Mod,
+                abs_code = AbsCode
           }}
     catch
         Excpt -> {stop, {Excpt, erlang:get_stacktrace()}}
