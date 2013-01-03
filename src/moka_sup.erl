@@ -32,7 +32,7 @@
 -behaviour(supervisor).
 
 %%%_* Exports ==========================================================
--export([start_link/4]).
+-export([start_link/5]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -40,19 +40,22 @@
 %%%_* API ==============================================================
 
 %% @doc Starts a supervisor for a new moka
--spec start_link(atom(), atom(), module(), moka_mod_utils:abstract_code()) ->
+-spec start_link(
+        atom(), atom(), atom(), module(), moka_mod_utils:abstract_code()) ->
                         {ok, pid()} | {error, term()}.
-start_link(SupName, MokaName, MokedModule, AbsCode) ->
+start_link(SupName, MokaServerName, MokaHistoryName, MokedModule, AbsCode) ->
     supervisor:start_link(
-      {local, SupName}, ?MODULE, {MokaName, MokedModule, AbsCode}).
+      {local, SupName}, ?MODULE,
+      {MokaServerName, MokaHistoryName, MokedModule, AbsCode}).
 
 %%%_* Exported Internals ================================================
 
 %% @private
-init({MokaName, MokedModule, AbsCode}) ->
+init({MokaServerName, MokaHistoryName, MokedModule, AbsCode}) ->
     {ok,
      {supervisor_spec(),
-      [moka_spec(MokaName, MokedModule, AbsCode), history_spec()]}}.
+      [moka_spec(MokaServerName, MokaHistoryName, MokedModule, AbsCode),
+       history_spec(MokaHistoryName)]}}.
 
 %%%_* Private Functions ================================================
 
@@ -61,16 +64,16 @@ supervisor_spec() ->
     MaxSecondsBetweenRestarts = 1,
     {one_for_all, MaxRestarts, MaxSecondsBetweenRestarts}.
 
-moka_spec(Name, Module, AbsCode) ->
+moka_spec(ServerName, HistoryName, Module, AbsCode) ->
     Restart = permanent,
     Shutdown = 2000,
-    MFA = {moka_server, start_link, [Name, Module, AbsCode]},
+    MFA = {moka_server, start_link, [ServerName, HistoryName, Module, AbsCode]},
     {moka_server, MFA, Restart, Shutdown, worker, [moka_server]}.
 
-history_spec() ->
+history_spec(Name) ->
     Restart = permanent,
     Shutdown = 2000,
-    MFA = {moka_history, start_link, []},
+    MFA = {moka_history, start_link, [Name]},
     {moka_history, MFA, Restart, Shutdown, worker, [moka_history]}.
 
 %%%_* Emacs ============================================================

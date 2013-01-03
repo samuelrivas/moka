@@ -64,10 +64,12 @@
 %% @todo Avoid the possibility of creating two mokas for the same module.
 -spec start(module()) -> moka().
 start(Mod) when is_atom(Mod) ->
-    AbsCode = moka_mod_utils:get_abs_code(Mod),
-    MokaName = moka_name(Mod),
-    moka_main_sup:start_moka(MokaName, Mod, AbsCode),
-    MokaName.
+    AbsCode         = moka_mod_utils:get_abs_code(Mod),
+    MokaServerName  = moka_server_name(Mod),
+    MokaHistoryName = moka_history_name(Mod),
+
+    moka_main_sup:start_moka(MokaServerName, MokaHistoryName, Mod, AbsCode),
+    MokaServerName.
 
 %% @doc Stops an existing moka
 %%
@@ -118,4 +120,8 @@ load(Moka) -> moka_server:load(Moka).
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-moka_name(Module) -> moka_utils:atom_append(atom_to_list(Module), "_moka").
+moka_server_name(Module) ->
+    moka_utils:atom_append(atom_to_list(Module), "_moka").
+
+moka_history_name(Module) ->
+    moka_utils:atom_append(atom_to_list(Module), "_moka_history").

@@ -34,7 +34,7 @@
 -behaviour(gen_server).
 
 %%%_* Exports ==========================================================
--export([start_link/3, stop/1, replace/3, replace/4, export/3, load/1]).
+-export([start_link/4, stop/1, replace/3, replace/4, export/3, load/1]).
 
 %% This function should only be used for debugging moka
 -deprecated([{stop, 1}]).
@@ -58,9 +58,10 @@
 %%%_* API ==============================================================
 
 %% @doc Use {@link moka:start/2}
--spec start_link(moka_server(), module(), moka_mod_utils:abstract_code()) ->
+-spec start_link(
+        moka_server(), atom(), module(), moka_mod_utils:abstract_code()) ->
                         {ok, pid()} | ignore | {error, term()}.
-start_link(ServerName, Module, AbsCode) ->
+start_link(ServerName, _HistoryName, Module, AbsCode) ->
     gen_server:start_link(
       {local, ServerName}, ?MODULE, {Module, AbsCode}, []).
 
