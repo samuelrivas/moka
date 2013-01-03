@@ -1,0 +1,20 @@
+@startuml
+
+class Moka        <<application>>
+class MainSup     <<supervisor>>
+class MokaSup     <<supervisor>>
+class MokaServer  <<genserver>>
+class History     <<genserver>>
+class CallHandler <<genserver>>
+class FunWorker   <<temporary process>>
+
+Moka *--> MainSup
+
+MainSup *--> "*" MokaSup
+
+MokaSup     *-->     MokaServer
+MokaSup     *-->     History
+MokaSup     *--> "*" CallHandler
+CallHandler *--> "*" FunWorker
+
+@enduml
