@@ -4,6 +4,7 @@ class Moka <<facade>> {
   start(Module) : MokaServer
   stop(MokaServer)
   replace(Moka, ...)
+  export(Moka, Function)
   load(Moka)
   history(Moka) : [{Fun, Args, Result}]
 }
@@ -13,29 +14,19 @@ class MokaServer {
   start(Module)
   stop()
   replace_remote_call(Module, Function, Fun)
+  replace_local_call(Function, Fun)
+  export(Function)
   load()
   history() : [{Fun, Args, Result}]
 }
 
-note as M1
-  By remote call we refer to
-  something like mod:fun(...)
-end note
-
-M1 .. MokaServer
-
 class ModUtils <<library>> {
   get_abstract_code(Module)
   replace_remote_call(Abstact, CallTo = {Module, Function}, Fun)
+  replace_local_call(Abstact, Function, Fun)
+  export(Abstact, Function)
   restore(Module)
 }
-
-note as M2
-  The arity of Fun determines the arity
-  of the remote call to replace
-end note
-
-M2 .. ModUtils
 
 class AbsCode <<data>> {
   module
@@ -45,8 +36,7 @@ class AbsCode <<data>> {
 class CallHandler {
   - behaviour: fun
 
-  start()
-  set_response_fun(Fun)
+  start(Fun)
   get_response(Args)
 }
 
@@ -78,19 +68,19 @@ class MokaSup <<supervisor>> {
 
 Moka ..> MainSup
 Moka ..> MokaServer
+Moka ..> History
 
-MokaServer *--> "*" CallHandler
 MokaServer *--> "1" AbsCode
-MokaServer *--> "1" History
+MokaServer  ..>     MokaSup
 MokaServer  ..>     ModUtils
 ModUtils    ..>     AbsCode
 
-MainSup o--> "*" MokaSup     : <<creates>>
-MokaSup o-->     MokaServer  : <<creates>>
-MokaSup o--> "*" CallHandler : <<creates>>
-MokaSup o-->     History     : <<creates>>
-MokaSup o--> "*" FunWorker   : <<creates>>
+MainSup  ..> MokaSup
 
-CallHandler  ..>     History
 CallHandler *--> "*" FunWorker
+
+FunWorker ..> History
+
+AbsCode ..> CallHandler
+
 @enduml
