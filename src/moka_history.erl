@@ -30,7 +30,7 @@
 %%%_* Exports ==========================================================
 
 %% API
--export([start_link/1]).
+-export([start_link/1, stop/1, add_call/4, get_calls/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -52,16 +52,37 @@
 -spec start_link(atom()) -> {ok, pid()}.
 start_link(Name) -> gen_server:start_link({local, Name}, ?MODULE, none, []).
 
+%% @doc Add a function call to the history
+-spec add_call(atom(), atom(), [any()], any()) -> ok.
+add_call(ServerName, Function, Args, Return) ->
+    sel_gen_server:cast(ServerName, {add_call, {Function, Args, Return}}).
+
+%% @doc Get the call history
+-spec get_calls(atom()) -> [history_entry()].
+get_calls(ServerName) -> sel_gen_server:call(ServerName, get_calls).
+
+%% @doc Stop a history server
+%%
+%% This is typically used for testing
+-spec stop(atom()) -> ok.
+stop(ServerName) -> sel_gen_server:call(ServerName, stop).
+
 %%%_* gen_server callbacks =============================================
 
 %% @private
 init(none) -> {ok, #state{}}.
 
 %% @private
+handle_call(get_calls, _From, State) ->
+    {reply, lists:reverse(State#state.calls), State};
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
 handle_call(Request, _From, State) ->
     {reply, {error, {bad_call, Request}}, State}.
 
 %% @private
+handle_cast({add_call, Call}, State) ->
+    {noreply, State#state{calls = [Call | State#state.calls]}};
 handle_cast(_Msg, State) -> {noreply, State}.
 
 %% @private
