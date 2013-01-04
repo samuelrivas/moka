@@ -48,6 +48,7 @@
 -record(state, {
           module             :: module(),
           abs_code           :: moka_mod_utils:abstract_code(),
+          history_server     :: moka_history:server(),
           handler_count = 0  :: non_neg_integer()
          }).
 
@@ -59,11 +60,12 @@
 
 %% @doc Use {@link moka:start/2}
 -spec start_link(
-        moka_server(), atom(), module(), moka_mod_utils:abstract_code()) ->
+        moka_server(), moka_history:server(), module(),
+        moka_mod_utils:abstract_code()) ->
                         {ok, pid()} | ignore | {error, term()}.
-start_link(ServerName, _HistoryName, Module, AbsCode) ->
+start_link(ServerName, HistoryServer, Module, AbsCode) ->
     gen_server:start_link(
-      {local, ServerName}, ?MODULE, {Module, AbsCode}, []).
+      {local, ServerName}, ?MODULE, {Module, AbsCode, HistoryServer}, []).
 
 %% @doc Stops a moka server
 %%
@@ -94,14 +96,15 @@ load(MokaServ) -> sel_gen_server:call(MokaServ, load).
 %%%_* gen_server callbacks =============================================
 
 %% @private
-init({Mod, AbsCode}) ->
+init({Mod, AbsCode, HistoryServer}) ->
     try
         %% needed to have terminate run before the server dies
         process_flag(trap_exit, true),
         {ok, #state{
-                module   = Mod,
-                abs_code = AbsCode
-          }}
+                module         = Mod,
+                abs_code       = AbsCode,
+                history_server = HistoryServer
+               }}
     catch
         Excpt -> {stop, {Excpt, erlang:get_stacktrace()}}
     end.
@@ -121,7 +124,8 @@ handle_call(Request, From, State) ->
 safe_handle_call({replace, ReplaceSpec, NewBehaviour}, _From, State) ->
     Count          = State#state.handler_count,
     AbsCode        = State#state.abs_code,
-    HandlerName    = start_call_handler(NewBehaviour, Count),
+    HistoryServer  = State#state.history_server,
+    HandlerName    = start_call_handler(NewBehaviour, HistoryServer, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
 
     {reply, ok,
@@ -160,9 +164,9 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-start_call_handler(Behaviour, Count) ->
+start_call_handler(Behaviour, HistoryServer, Count) ->
     HandlerName = call_handler_name(Count),
-    moka_call_handler:start_link(HandlerName, Behaviour),
+    moka_call_handler:start_link(HandlerName, Behaviour, HistoryServer),
     HandlerName.
 
 call_handler_name(Count) ->
