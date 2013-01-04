@@ -35,7 +35,7 @@
 %%% Exports
 %%%===================================================================
 %% API
--export([start_link/2, get_response/2, stop/1]).
+-export([start_link/3, get_response/2, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -45,7 +45,9 @@
 %%% Types
 %%%===================================================================
 -record(state, {
-          reply_fun = undefined :: undefined | fun()
+          function_name  :: atom(),
+          reply_fun      :: fun(),
+          history_server :: moka_history:server()
          }).
 
 -type call_handler() :: pid().
@@ -58,10 +60,10 @@
 %%%===================================================================
 
 %% @doc Starts a new call handler with `Fun' as `reply_fun'
--spec start_link(atom(), fun()) -> call_handler().
-start_link(Name, Fun) when is_function(Fun) ->
+-spec start_link(atom(), fun(), moka_history:server()) -> call_handler().
+start_link(Name, Fun, HistoryServer) when is_function(Fun) ->
     crashfy:untuple(
-      gen_server:start_link({local, Name}, ?MODULE, Fun, [])).
+      gen_server:start_link({local, Name}, ?MODULE, {Fun, HistoryServer}, [])).
 
 %% @doc Gets the response for a call
 %%
@@ -80,13 +82,20 @@ stop(CallHandler) -> sel_gen_server:call(CallHandler, stop).
 %%%===================================================================
 
 %% @private
-init(Fun) -> {ok, #state{reply_fun = Fun}}.
+init({Fun, HistoryServer}) ->
+    {ok, #state{
+            reply_fun = Fun,
+            history_server = HistoryServer}}.
 
 %% @private
 handle_call({get_response, Args}, From, State) ->
     proc_lib:spawn_link(
       fun() ->
               Result = erlang:apply(State#state.reply_fun, Args),
+              moka_history:add_call(
+                State#state.history_server, State#state.function_name,
+                Args, Result),
+
               gen_server:reply(From, Result)
       end),
     {noreply, State};
