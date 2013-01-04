@@ -41,7 +41,8 @@
 
 %% @doc Starts a supervisor for a new moka
 -spec start_link(
-        atom(), atom(), atom(), module(), moka_mod_utils:abstract_code()) ->
+        atom(), atom(), moka_history:server(), module(),
+        moka_mod_utils:abstract_code()) ->
                         {ok, pid()} | {error, term()}.
 start_link(SupName, MokaServerName, MokaHistoryName, MokedModule, AbsCode) ->
     supervisor:start_link(
