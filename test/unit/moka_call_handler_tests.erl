@@ -73,7 +73,7 @@ parallel_test_() ->
 %%%-------------------------------------------------------------------
 handler_name() -> test_handler.
 
-start_handler(Fun) -> moka_call_handler:start_link(handler_name(), Fun).
+start_handler(Fun) -> moka_call_handler:start_link(handler_name(), Fun, none).
 
 stop_handler(Pid) ->
     moka_call_handler:stop(handler_name()),
