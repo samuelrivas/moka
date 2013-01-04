@@ -44,27 +44,30 @@
           calls = [] :: [history_entry()]
          }).
 
+-type server()        :: atom().
 -type history_entry() :: {Funct::atom(), Args::[any()], Return::any()}.
+
+-export_type([server/0]).
 
 %%%_* API ==============================================================
 
 %% @doc Start a history server
--spec start_link(atom()) -> {ok, pid()}.
+-spec start_link(server()) -> {ok, pid()}.
 start_link(Name) -> gen_server:start_link({local, Name}, ?MODULE, none, []).
 
 %% @doc Add a function call to the history
--spec add_call(atom(), atom(), [any()], any()) -> ok.
+-spec add_call(server(), atom(), [any()], any()) -> ok.
 add_call(ServerName, Function, Args, Return) ->
     sel_gen_server:cast(ServerName, {add_call, {Function, Args, Return}}).
 
 %% @doc Get the call history
--spec get_calls(atom()) -> [history_entry()].
+-spec get_calls(server()) -> [history_entry()].
 get_calls(ServerName) -> sel_gen_server:call(ServerName, get_calls).
 
 %% @doc Stop a history server
 %%
 %% This is typically used for testing
--spec stop(atom()) -> ok.
+-spec stop(server()) -> ok.
 stop(ServerName) -> sel_gen_server:call(ServerName, stop).
 
 %%%_* gen_server callbacks =============================================
