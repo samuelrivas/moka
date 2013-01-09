@@ -126,8 +126,9 @@ next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
     Unexported = State#state.unexported,
     State#state{unexported = Unexported -- [Spec]};
 next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
-    History = State#state.history,
-    State#state{history = History ++ [Func, make_args(Arity), Res]};
+    update_history(Func, make_args(Arity), Res, State);
+next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
+    update_history({origin_module(), internal_get_history}, [], Res, State);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
@@ -387,3 +388,7 @@ make_args(N) -> lists:seq(0, N - 1).
 replacement_fun(0) -> fun()     -> {moked, []}     end;
 replacement_fun(1) -> fun(A)    -> {moked, [A]}    end;
 replacement_fun(2) -> fun(A, B) -> {moked, [A, B]} end.
+
+update_history(Func, Args, Res, State) ->
+    History = State#state.history,
+    State#state{history = History ++ [{Func, Args, Res}]}.
