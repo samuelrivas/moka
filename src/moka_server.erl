@@ -46,13 +46,15 @@
 %%%_* Types ============================================================
 
 -record(state, {
-          module             :: module(),
-          abs_code           :: moka_mod_utils:abstract_code(),
-          history_server     :: moka_history:server(),
-          handler_count = 0  :: non_neg_integer()
+          module            :: module(),
+          abs_code          :: moka_mod_utils:abstract_code(),
+          history_server    :: moka_history:server(),
+          handler_count = 0 :: non_neg_integer()
          }).
 
--type moka_server() :: atom().
+-type moka_server()  :: atom().
+-type replace_spec() :: {external, module(), Function::atom()}
+                      | {local, Function::atom()}.
 
 -export_type([moka_server/0]).
 
@@ -121,11 +123,20 @@ handle_call(Request, From, State) ->
             {stop, Error, {error, Error}, State}
     end.
 
+-spec make_description(module(), replace_spec()) ->
+                              moka_call_handler:call_description().
+make_description(Module, {local, Function}) -> {Module, Function};
+make_description(_Module, {external, Module, Function}) -> {Module, Function}.
+
 safe_handle_call({replace, ReplaceSpec, NewBehaviour}, _From, State) ->
-    Count          = State#state.handler_count,
-    AbsCode        = State#state.abs_code,
-    HistoryServer  = State#state.history_server,
-    HandlerName    = start_call_handler(NewBehaviour, HistoryServer, Count),
+    Module        = State#state.module,
+    Count         = State#state.handler_count,
+    AbsCode       = State#state.abs_code,
+    HistoryServer = State#state.history_server,
+    Description   = make_description(Module, ReplaceSpec),
+
+    HandlerName =
+        start_call_handler(NewBehaviour, Description, HistoryServer, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
 
     {reply, ok,
@@ -164,9 +175,10 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-start_call_handler(Behaviour, HistoryServer, Count) ->
+start_call_handler(Behaviour, CallDescription, HistoryServer, Count) ->
     HandlerName = call_handler_name(Count),
-    moka_call_handler:start_link(HandlerName, Behaviour, HistoryServer),
+    moka_call_handler:start_link(
+      HandlerName, CallDescription, Behaviour, HistoryServer),
     HandlerName.
 
 call_handler_name(Count) ->

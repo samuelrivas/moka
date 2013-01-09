@@ -56,9 +56,10 @@
 start_link(Name) -> gen_server:start_link({local, Name}, ?MODULE, none, []).
 
 %% @doc Add a function call to the history
--spec add_call(server(), atom(), [any()], any()) -> ok.
-add_call(ServerName, Function, Args, Return) ->
-    sel_gen_server:cast(ServerName, {add_call, {Function, Args, Return}}).
+-spec add_call(
+        server(), moka_call_handler:call_description(), [any()], any()) -> ok.
+add_call(ServerName, CallDescription, Args, Return) ->
+    sel_gen_server:cast(ServerName, {add_call, {CallDescription, Args, Return}}).
 
 %% @doc Get the call history
 -spec get_calls(server()) -> [history_entry()].
