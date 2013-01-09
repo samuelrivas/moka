@@ -242,11 +242,19 @@ pretty_print_step(Command, {{StateName, StateData}, Result}) ->
     pretty_print_state(StateName, StateData),
     pretty_print_command(Command, Result).
 
-pretty_print_state(StateName, StateData) ->
+%% We typically edit this function when there is a particular state value we
+%% want to track for debugging purposes. Printing the whole state is too verbose
+pretty_print_state(
+  StateName,
+  #state{
+     replaced = Replaced,
+     history  = History}) ->
+
     io:format(
-      "State     : ~p~n"
-      "State Data: ~P~n",
-      [StateName, StateData, 5]).
+      "State    : ~p~n"
+      "Replaced : ~500p~n"
+      "History  : ~500p~n",
+      [StateName, Replaced, History]).
 
 pretty_print_command({set, Var, {call, Mod, Fun, Args}}, Result) ->
     io:format("~p=~p:~p(", [Var,Mod, Fun]),
