@@ -176,7 +176,7 @@ start(Module) ->
     Moka.
 
 setup_get_history(Moka) ->
-    moka:replace(Moka, internal_get_history, fun() -> [] end).
+    moka:replace(Moka, internal_get_history, fun() -> moka:history(Moka) end).
 
 call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
