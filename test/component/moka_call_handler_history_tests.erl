@@ -55,7 +55,7 @@ can_record_history_test_() ->
 init_servers() ->
     crashfy:untuple(moka_history:start_link(history_server())),
     moka_call_handler:start_link(
-      call_handler_name(), handler_fun(), history_server()).
+      call_handler_name(), call_description(), handler_fun(), history_server()).
 
 stop_servers() ->
     moka_call_handler:stop(call_handler_name()),
@@ -65,13 +65,15 @@ history_server() -> test_history_server.
 
 call_handler_name() -> test_call_handler.
 
+call_description() -> {test_module, test_funct}.
+
 handler_fun() -> fun(A, B) -> {A, B} end.
 
 expected_history(ArgsList) -> [history_entry(A, B) || [A, B] <- ArgsList].
 
 history_entry(A, B) ->
     HandlerFun = handler_fun(),
-    {undefined, [A, B], HandlerFun(A, B)}.
+    {call_description(), [A, B], HandlerFun(A, B)}.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:

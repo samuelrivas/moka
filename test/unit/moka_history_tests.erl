@@ -52,10 +52,12 @@ prop_get_history() ->
 
 history() -> proper_types:list(history_entry()).
 
-history_entry() -> {function_gen(), args_gen(), return_gen()}.
+history_entry() -> {description(), args_gen(), return_gen()}.
 
 %% Variety doesn't seem relevant for this test case, so we just generate a few
 %% possibilities
+description()  -> {module_gen(), function_gen()}.
+module_gen()   -> proper_types:elements([mod1, mod2, mod3, mod4]).
 function_gen() -> proper_types:elements([fun1, fun2, fun3, fun4]).
 args_gen()     -> proper_types:list(proper_types:integer()).
 return_gen()   -> proper_types:integer().
@@ -65,8 +67,8 @@ test_server_name() -> moka_history_test_server.
 
 replay_history(Server, History) ->
     lists:foreach(
-      fun({Fun, Args, Result}) ->
-              moka_history:add_call(Server, Fun, Args, Result)
+      fun({Description, Args, Result}) ->
+              moka_history:add_call(Server, Description, Args, Result)
       end,
       History).
 
