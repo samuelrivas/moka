@@ -41,11 +41,10 @@
 
 %%%_* Types ============================================================
 -record(state, {
-          calls = [] :: [history_entry()]
+          calls = [] :: moka:history()
          }).
 
 -type server()        :: atom().
--type history_entry() :: {Funct::atom(), Args::[any()], Return::any()}.
 
 -export_type([server/0]).
 
@@ -62,7 +61,7 @@ add_call(ServerName, CallDescription, Args, Return) ->
     sel_gen_server:cast(ServerName, {add_call, {CallDescription, Args, Return}}).
 
 %% @doc Get the call history
--spec get_calls(server()) -> [history_entry()].
+-spec get_calls(server()) -> moka:history().
 get_calls(ServerName) -> sel_gen_server:call(ServerName, get_calls).
 
 %% @doc Stop a history server

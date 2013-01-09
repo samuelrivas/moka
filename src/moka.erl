@@ -40,7 +40,8 @@
 %%% Exports
 %%%===================================================================
 
--export([start/1, stop/1, replace/3, replace/4, export/3, load/1]).
+-export([start/1, stop/1, replace/3, replace/4, export/3, history/1,
+         load/1]).
 
 %%%===================================================================
 %%% Types
@@ -48,7 +49,10 @@
 
 -opaque moka() :: atom().
 
--export_type([moka/0]).
+-type history_entry() :: {Funct::atom(), Args::[any()], Return::any()}.
+-type history()       :: [history_entry()].
+
+-export_type([moka/0, history/0, history_entry/0]).
 
 %%%===================================================================
 %%% API
@@ -106,6 +110,12 @@ replace(Moka, Module, Function, NewBehaviour)
 export(Moka, Function, Arity)
   when is_atom(Function), is_integer(Arity) ->
     moka_server:export(Moka, Function, Arity).
+
+%% @doc Returns the history of calls for `Moka'
+%%
+%% This function can be called from replaced calls
+-spec history(moka()) -> history().
+history(Moka) -> moka_server:history(Moka).
 
 %% @doc Makes all substitutions effective
 %%
