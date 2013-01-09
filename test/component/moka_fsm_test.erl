@@ -39,14 +39,15 @@
 
 %%%_* Types =============================================================
 
--type method_key()  :: {module(), Arity::non_neg_integer()}.
+-type method_key()  :: {Funct::atom(), Arity::non_neg_integer()}.
 -type method_spec() :: {method_key(), ExpectedResult::term()}.
 
 -record(state, {
           moka       = none :: none | moka:moka(),
           history    = [],
           functions  = []   :: [method_spec()],
-          unexported = []   :: [method_key()]
+          unexported = []   :: [method_key()],
+          replaced   = []   :: [method_key()]
          }).
 
 %%%_* Exports ============================================================
@@ -117,23 +118,57 @@ next_state_data(_From, _Target, State, Res, {call, _, start, _}) ->
 next_state_data(_From, _Target, State, _Res, {call, _, stop, _}) ->
     State#state{
       moka       = none,
+      history    = [],
+      replaced   = [],
       functions  = initial_funct_table(),
       unexported = initial_unexported_table()
      };
 next_state_data(_From, _Target, State, _Res, {call, _, replace, [_, Spec]}) ->
-    replace_results(State, Spec);
+    ReplacedState = replace_results(State, Spec),
+    ReplacedState#state{
+      replaced = [Spec | ReplacedState#state.replaced]};
 next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
     Unexported = State#state.unexported,
     State#state{unexported = Unexported -- [Spec]};
 next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
-    update_history(Func, make_args(Arity), Res, State);
+    case should_add_to_history({Func, Arity}, State) of
+        {Mod, Funct, Arity} ->
+            add_call_to_history({Mod, Funct}, make_args(Arity), Res, State);
+        {Funct, Arity} ->
+            add_call_to_history(
+              {origin_module(), Funct}, make_args(Arity), Res, State);
+        false ->
+            %% Nothing to add, we are not calling a replaced function
+            State
+    end;
 next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
-    update_history({origin_module(), internal_get_history}, [], Res, State);
+    add_call_to_history({origin_module(), internal_get_history}, [], Res, State);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
+should_add_to_history(FunSpec, State) ->
+    case lists:member(FunSpec, State#state.unexported) of
+        true ->
+            %% This call fails as the function is not exported, history is
+            %% generated
+            false;
+        false ->
+            find_replacement(FunSpec, State#state.replaced)
+    end.
+
+find_replacement(FunSpec, []) ->
+    false;
+find_replacement(FunSpec, [Replaced | T]) ->
+    case lists:member(FunSpec, affected_by_replace(Replaced)) of
+        true ->
+            Replaced;
+        false ->
+            find_replacement(FunSpec, T)
+    end.
+
 weight(_, initial, _) -> 1;
 weight(_, _, _)       -> 10.
+
 %%%_* States ===========================================================
 
 initial(State) ->
@@ -397,6 +432,6 @@ replacement_fun(0) -> fun()     -> {moked, []}     end;
 replacement_fun(1) -> fun(A)    -> {moked, [A]}    end;
 replacement_fun(2) -> fun(A, B) -> {moked, [A, B]} end.
 
-update_history(Func, Args, Res, State) ->
+add_call_to_history(Func, Args, Res, State) ->
     History = State#state.history,
     State#state{history = History ++ [{Func, Args, Res}]}.
