@@ -20,7 +20,7 @@ calls to B.
 
 Of course, mocking with either Moka's or Meck's approach is largely equivalent
 in most situations. However modifying the caller module instead of the called
-module is a cleaner and safer.
+module is cleaner and safer.
 
 The main motivation for building Moka is that it allows us to mock (or _mok_)
 modules that are used by other modules we cannot control during our testing.
