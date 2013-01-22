@@ -2,24 +2,25 @@
 
 ## Overview
 
-Moka is a tool to break test dependencies. Similar to other mocks, it allows a
-module A depending on a module B to run without the need of the whole B
-behaviour.
+Moka is a tool for breaking test dependencies. Similar to other mocks, it allows
+a module A depending on a module B to run without depending upon the complete
+behaviour of module B.
 
 There are a number of tools like this for Erlang, being
 [Meck](https://github.com/eproxus/meck) the most popular. Both Moka and Meck
 will create a stub of B (say B') with some controlled behaviour, and make A call
-to B' instead of B.
+B' instead of B.
 
-Meck achieves that by replacing the module B with B', that means that A, and any
-other module calling B, will get the modified behaviour.
+Meck achieves that by replacing the module B with B', meaning that A, and any
+other module calling B, will get the modified behaviour (B') instead.
 
-Moka uses a different approach, it wouldn't replace B, but modify the behaviour
-of A redirecting any calls to B to B'.
+Moka uses a different approach. Instead of replacing B, it modifies the
+behaviour of A by redirecting mocked calls to B' but retaining the unmocked
+calls to B.
 
-Of course, mocking with either Moka's or Meck's approach is grossly equivalent
-in many situations. However, we think that modifying the caller module instead
-of the called module is a cleaner and safer.
+Of course, mocking with either Moka's or Meck's approach is largely equivalent
+in most situations. However modifying the caller module instead of the called
+module is a cleaner and safer.
 
 The main motivation for building Moka is that it allows us to mock (or _mok_)
 modules that are used by other modules we cannot control during our testing.
@@ -29,8 +30,8 @@ fail to recompile the mocked module as the compiler depends on `file`).
 
 There are, however, some drawbacks in Moka's approach:
 
- * Moka needs the module under test source code, so it must have
-   been compiled with `debug_info`
+ * Moka needs the module under test source code, so it must be compiled with
+   `debug_info`
  * It is easier to couple tests with internal implementation details
  * Mocking dynamic calls is not straight forward (Moka cannot do it in its
    current state), so calls like `Module:Function(...)` will still call the
