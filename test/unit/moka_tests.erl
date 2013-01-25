@@ -36,7 +36,7 @@ mok_wrong_module_test() ->
     %% Verify no one created this absurd file
     ?assertEqual(non_existing, code:where_is_file("doesnt_exist.beam")),
 
-    %% Now we should file creating a moka for it
+    %% Now, we should fail creating a moka for it
     ?assertThrow({cannot_get_object_code, _}, moka:start(doesnt_exist)).
 
 %%%_* Emacs ============================================================
