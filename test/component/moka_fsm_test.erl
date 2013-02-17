@@ -137,17 +137,7 @@ next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
             %% exported. Nothing to record in the history from this
             State;
         false ->
-            case should_add_to_history({Func, Arity}, State) of
-                {Mod, Funct, Arity} ->
-                    add_call_to_history(
-                      {Mod, Funct}, make_args(Arity), Res, State);
-                {Funct, Arity} ->
-                    add_call_to_history(
-                      {origin_module(), Funct}, make_args(Arity), Res, State);
-                false ->
-                    %% Nothing to add, we are not calling a replaced function
-                    State
-            end
+            maybe_add_to_history({Func, Arity}, Res, State)
     end;
 next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
     %% see setup_get_history
@@ -159,8 +149,18 @@ next_state_data(_From, _Target, State, _Res, _Call) ->
 is_unexported(FunSpec, #state{unexported = Unexported}) ->
     lists:member(FunSpec, Unexported).
 
-should_add_to_history(FunSpec, State) ->
-    find_replacement(FunSpec, State#state.replaced).
+maybe_add_to_history(FunSpec, Res, State) ->
+    case find_replacement(FunSpec, State#state.replaced) of
+        {Mod, Funct, Arity} ->
+            add_call_to_history(
+              {Mod, Funct}, make_args(Arity), Res, State);
+        {Funct, Arity} ->
+            add_call_to_history(
+              {origin_module(), Funct}, make_args(Arity), Res, State);
+        false ->
+            %% Nothing to add, we are not calling a replaced function
+            State
+    end.
 
 find_replacement(_FunSpec, []) ->
     false;
