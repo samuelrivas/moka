@@ -131,30 +131,36 @@ next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
     Unexported = State#state.unexported,
     State#state{unexported = Unexported -- [Spec]};
 next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
-    case should_add_to_history({Func, Arity}, State) of
-        {Mod, Funct, Arity} ->
-            add_call_to_history({Mod, Funct}, make_args(Arity), Res, State);
-        {Funct, Arity} ->
-            add_call_to_history(
-              {origin_module(), Funct}, make_args(Arity), Res, State);
+    case is_unexported({Func, Arity}, State) of
+        true ->
+            %% This function call will fail as the function is not
+            %% exported. Nothing to record in the history from this
+            State;
         false ->
-            %% Nothing to add, we are not calling a replaced function
-            State
+            case should_add_to_history({Func, Arity}, State) of
+                {Mod, Funct, Arity} ->
+                    add_call_to_history(
+                      {Mod, Funct}, make_args(Arity), Res, State);
+                {Funct, Arity} ->
+                    add_call_to_history(
+                      {origin_module(), Funct}, make_args(Arity), Res, State);
+                false ->
+                    %% Nothing to add, we are not calling a replaced function
+                    State
+            end
     end;
 next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
-    add_call_to_history({origin_module(), internal_get_history}, [], Res, State);
+    %% see setup_get_history
+    add_call_to_history(
+      {origin_module(), internal_get_history}, [], Res, State);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
 
+is_unexported(FunSpec, #state{unexported = Unexported}) ->
+    lists:member(FunSpec, Unexported).
+
 should_add_to_history(FunSpec, State) ->
-    case lists:member(FunSpec, State#state.unexported) of
-        true ->
-            %% This call fails as the function is not exported, history is
-            %% generated
-            false;
-        false ->
-            find_replacement(FunSpec, State#state.replaced)
-    end.
+    find_replacement(FunSpec, State#state.replaced).
 
 find_replacement(FunSpec, []) ->
     false;
