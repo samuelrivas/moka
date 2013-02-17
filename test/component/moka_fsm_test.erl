@@ -162,7 +162,7 @@ is_unexported(FunSpec, #state{unexported = Unexported}) ->
 should_add_to_history(FunSpec, State) ->
     find_replacement(FunSpec, State#state.replaced).
 
-find_replacement(FunSpec, []) ->
+find_replacement(_FunSpec, []) ->
     false;
 find_replacement(FunSpec, [Replaced | T]) ->
     case lists:member(FunSpec, affected_by_replace(Replaced)) of
@@ -217,6 +217,7 @@ start(Module) ->
     setup_get_history(Moka),
     Moka.
 
+%% Hook in this internal function to get the history the moka can see
 setup_get_history(Moka) ->
     moka:replace(Moka, internal_get_history, fun() -> moka:history(Moka) end).
 
