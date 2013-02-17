@@ -131,13 +131,13 @@ next_state_data(_From, _Target, State, _Res, {call, _, export, [_, Spec]}) ->
     Unexported = State#state.unexported,
     State#state{unexported = Unexported -- [Spec]};
 next_state_data(loaded, loaded, State, Res, {call, _, call, [{Func, Arity}]}) ->
-    case is_unexported({Func, Arity}, State) of
+    case lists:member({Func, Arity}, State#state.unexported) of
         true ->
             %% This function call will fail as the function is not
             %% exported. Nothing to record in the history from this
             State;
         false ->
-            maybe_add_to_history({Func, Arity}, Res, State)
+            add_replacements_to_history({Func, Arity}, Res, State)
     end;
 next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
     %% see setup_get_history
@@ -145,32 +145,6 @@ next_state_data(loaded, loaded, State, Res, {call, _, get_moked_history, _}) ->
       {origin_module(), internal_get_history}, [], Res, State);
 next_state_data(_From, _Target, State, _Res, _Call) ->
     State.
-
-is_unexported(FunSpec, #state{unexported = Unexported}) ->
-    lists:member(FunSpec, Unexported).
-
-maybe_add_to_history(FunSpec, Res, State) ->
-    case find_replacement(FunSpec, State#state.replaced) of
-        {Mod, Funct, Arity} ->
-            add_call_to_history(
-              {Mod, Funct}, make_args(Arity), Res, State);
-        {Funct, Arity} ->
-            add_call_to_history(
-              {origin_module(), Funct}, make_args(Arity), Res, State);
-        false ->
-            %% Nothing to add, we are not calling a replaced function
-            State
-    end.
-
-find_replacement(_FunSpec, []) ->
-    false;
-find_replacement(FunSpec, [Replaced | T]) ->
-    case lists:member(FunSpec, affected_by_replace(Replaced)) of
-        true ->
-            Replaced;
-        false ->
-            find_replacement(FunSpec, T)
-    end.
 
 weight(_, initial, _) -> 1;
 weight(_, _, _)       -> 10.
@@ -442,3 +416,26 @@ replacement_fun(2) -> fun(A, B) -> {moked, [A, B]} end.
 add_call_to_history(Func, Args, Res, State) ->
     History = State#state.history,
     State#state{history = History ++ [{Func, Args, Res}]}.
+
+%% Add to history those replaced calls that are run when executing FuncSpec
+add_replacements_to_history(FunSpec, Res, State) ->
+    AddToHistory =
+        fun(Spec, Arity) ->
+                add_call_to_history(Spec, make_args(Arity), Res, State)
+        end,
+    case affected_by_replacement(FunSpec, State#state.replaced) of
+        {Mod, Funct, Arity} -> AddToHistory({Mod, Funct}, Arity);
+        {Funct, Arity}      -> AddToHistory({origin_module(), Funct}, Arity);
+        false               -> State
+    end.
+
+%% Get a function spec ({Mod, Funct}) and the list of replacements, and returns
+%% either a replacement affecting the behaviour of Funct or false if Funct is
+%% not affected by any behaviour.
+affected_by_replacement(_FunSpec, []) ->
+    false;
+affected_by_replacement(FunSpec, [Replaced | T]) ->
+    case lists:member(FunSpec, affected_by_replace(Replaced)) of
+        true  -> Replaced;
+        false -> affected_by_replacement(FunSpec, T)
+    end.
