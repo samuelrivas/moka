@@ -24,7 +24,7 @@
 
 %%% @doc acceptance tests
 
--module(hold_state_eunit).
+-module(hold_state).
 
 %%%_* Exports ==========================================================
 -export([code_load/0]).
