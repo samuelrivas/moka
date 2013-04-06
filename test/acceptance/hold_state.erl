@@ -49,22 +49,12 @@ can_base_on_previous_results_test_() ->
      fun() ->
              Apps = sel_application:start_app(moka),
              Moka = moka:start(hold_state_aux),
-             moka:replace(
-               Moka, crypto, rand_uniform,
-               fun(_, _) ->
-                       case lists:reverse(moka:history(Moka)) of
-                           []                              -> 0;
-                           [{_FunSpec, _Args, Return} | _] -> Return + 1
-                       end
-               end),
+             moka:replace(Moka, crypto, rand_uniform, count_entries_fun(Moka)),
              moka:load(Moka),
              {Apps, Moka}
      end,
 
-     fun({Apps, Moka}) ->
-        moka:stop(Moka),
-        sel_application:stop_apps(Apps)
-     end,
+     cleanup_fun(),
 
      %% Now we should be able to have a stateful, but controlled
      %% "pseudorandom" that just counts forward
@@ -80,22 +70,12 @@ can_check_arg_sequence_test_() ->
              Apps = sel_application:start_app(moka),
              Moka = moka:start(hold_state_aux),
              moka:replace(
-               Moka, crypto, rand_uniform,
-               fun(_, _) ->
-                       lists:foldl(
-                         fun({_FunSpec, [Arg, _], _Return}, Acc) ->
-                                 Arg + Acc
-                         end,
-                         0, moka:history(Moka))
-                   end),
+               Moka, crypto, rand_uniform, sum_previous_args_fun(Moka)),
              moka:load(Moka),
              {Apps, Moka}
      end,
 
-     fun({Apps, Moka}) ->
-        moka:stop(Moka),
-        sel_application:stop_apps(Apps)
-     end,
+     cleanup_fun(),
 
      %% Now the "pseudorandom" generator should sum all previous first
      %% arguments.
@@ -128,10 +108,7 @@ can_count_function_calls_test_() ->
 
              {Apps, Moka}
      end,
-     fun({Apps, Moka}) ->
-        moka:stop(Moka),
-        sel_application:stop_apps(Apps)
-     end,
+     cleanup_fun(),
 
      %% Check we can count the calls
      fun({_, Moka}) ->
@@ -139,6 +116,32 @@ can_count_function_calls_test_() ->
               ?_assertEqual(2, calls(Moka, crypto, rand_bytes)),
               ?_assertEqual(1, calls(Moka, hold_state_aux, internal_call))]
      end}.
+
+%%%_* Internal Functions ===============================================
+
+cleanup_fun() ->
+    fun({Apps, Moka}) ->
+            moka:stop(Moka),
+            sel_application:stop_apps(Apps)
+    end.
+
+count_entries_fun(Moka) ->
+    fun(_, _) ->
+            case lists:reverse(moka:history(Moka)) of
+                []                              -> 0;
+                [{_FunSpec, _Args, Return} | _] -> Return + 1
+            end
+    end.
+
+sum_previous_args_fun(Moka) ->
+    fun(_, _) ->
+            History = moka:history(Moka),
+            FoldFun =
+                fun({_FunSpec, [Arg, _], _Return}, Acc) ->
+                        Arg + Acc
+                end,
+            lists:foldl(FoldFun, 0, History)
+    end.
 
 calls(Moka, Module, Function) ->
     length(
