@@ -22,12 +22,22 @@
 %%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-%%% @doc acceptance tests
+%%% @doc acceptance tests for stateful moking functionality
+%%%
+%%% Just for fun, we use crypto as target, as it represents very nicely a module
+%%% with offering functionality complex state involved
+%%%
+%%% Note we mok an auxiliary module (hold_state_aux) instead of calling crypto
+%%% directly in this module as we have to be sure we reload code after we load
+%%% the moka. Even if we exported functions to call ?MODULE: to use the new
+%%% version of the code, the test will run always the old version of the code
+%%% until it finishes. This complicates things a bit, for example we will fail
+%%% trying to unload the moka (or kill the test process if moka is not gentle
+%%% enough to check for lingering process before unloading the code).
 
 -module(hold_state).
 
 %%%_* Exports ==========================================================
--export([code_load/0]).
 
 %%%_* Includes =========================================================
 
@@ -36,25 +46,24 @@
 %%%_* Tests ============================================================
 can_base_on_previous_results_test() ->
     Apps = sel_application:start_app(moka),
-    Moka = moka:start(?MODULE),
+    Moka = moka:start(hold_state_aux),
     try
         moka:replace(
           Moka, crypto, rand_uniform,
           fun(_, _) ->
-                  case moka:history(Moka) of
-                      []                          -> 0;
-                      [{_Fun, _Args, Return} | _] -> Return + 1
+                  case lists:reverse(moka:history(Moka)) of
+                      []                                  -> 0;
+                      [{_FunSpec, _Args, Return} | _] -> Return + 1
                   end
           end),
         moka:load(Moka),
-        ?MODULE:code_load(),
 
-        %% Now we should be able to have a stateful, but controlled pseudorandom
-        %% generator
-        ?assertEqual(0, crypto:rand_uniform(0, 10)),
-        ?assertEqual(1, crypto:rand_uniform(0, 10)),
-        ?assertEqual(2, crypto:rand_uniform(0, 10)),
-        ?assertEqual(3, crypto:rand_uniform(0, 10))
+        %% Now we should be able to have a stateful, but controlled
+        %% "pseudorandom" that just counts forward
+        ?assertEqual(0, hold_state_aux:rand_uniform(0, 10)),
+        ?assertEqual(1, hold_state_aux:rand_uniform(0, 10)),
+        ?assertEqual(2, hold_state_aux:rand_uniform(0, 10)),
+        ?assertEqual(3, hold_state_aux:rand_uniform(0, 10))
     after
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
@@ -62,24 +71,23 @@ can_base_on_previous_results_test() ->
 
 can_check_arg_sequence_test() ->
     Apps = sel_application:start_app(moka),
-    Moka = moka:start(?MODULE),
+    Moka = moka:start(hold_state_aux),
     try
         moka:replace(
           Moka, crypto, rand_uniform,
           fun(_, _) ->
                   lists:foldl(
-                    fun({_Fun, [Arg], _Return}, Acc) -> Arg + Acc end,
+                    fun({_FunSpec, [Arg, _], _Return}, Acc) -> Arg + Acc end,
                     0, moka:history(Moka))
           end),
         moka:load(Moka),
-        ?MODULE:code_load(),
 
-        %% Now the pseudorandom generator should just sum all previous first
+        %% Now the "pseudorandom" generator should sum all previous first
         %% arguments.
-        ?assertEqual(0, crypto:rand_uniform(1, 10)),
-        ?assertEqual(1, crypto:rand_uniform(2, 10)),
-        ?assertEqual(3, crypto:rand_uniform(5, 10)),
-        ?assertEqual(8, crypto:rand_uniform(0, 10))
+        ?assertEqual(0, hold_state_aux:rand_uniform(1, 10)),
+        ?assertEqual(1, hold_state_aux:rand_uniform(2, 10)),
+        ?assertEqual(3, hold_state_aux:rand_uniform(5, 10)),
+        ?assertEqual(8, hold_state_aux:rand_uniform(0, 10))
     after
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
@@ -87,31 +95,31 @@ can_check_arg_sequence_test() ->
 
 can_count_function_calls_test() ->
     Apps = sel_application:start_app(moka),
-    Moka = moka:start(?MODULE),
+    Moka = moka:start(hold_state_aux),
     try
         moka:replace(Moka, crypto, rand_uniform, fun(_, _) -> 0 end),
         moka:replace(Moka, crypto, rand_bytes, fun(_) -> <<>> end),
         moka:load(Moka),
-        ?MODULE:code_load(),
 
         %% Do some calls
-        crypto:rand_uniform(foo, bar),
-        crypto:rand_bytes(foo),
-        crypto:rand_bytes(foo),
-        crypto:rand_uniform(foo, bar),
-        crypto:rand_uniform(foo, bar),
+        hold_state_aux:rand_uniform(foo, bar),
+        hold_state_aux:rand_bytes(foo),
+        hold_state_aux:rand_bytes(foo),
+        hold_state_aux:rand_uniform(foo, bar),
+        hold_state_aux:rand_uniform(foo, bar),
 
         %% Check we can count the calls
         History = moka:history(Moka),
-        ?assertEqual(3, length([x || {rand_uniform, _Args, _Rtrn} <- History])),
-        ?assertEqual(2, length([x || {rand_bytes  , _Args, _Rtrn} <- History]))
+        ?assertEqual(
+           3,
+           length([x || {{crypto, rand_uniform}, _Args, _Rtrn} <- History])),
+        ?assertEqual(
+           2,
+           length([x || {{crypto, rand_bytes}  , _Args, _Rtrn} <- History]))
     after
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
     end.
-
-%% Used just lo load the moked code
-code_load() -> ok.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
