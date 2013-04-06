@@ -26,13 +26,17 @@
 -module(hold_state_aux).
 
 %%%_* Exports ==========================================================
--export([rand_uniform/2, rand_bytes/1]).
+-export([rand_uniform/2, rand_bytes/1, call_to_internal/0]).
 
 %%%_* API ==============================================================
 
 rand_uniform(Lo, Hi) -> crypto:rand_uniform(Lo, Hi).
 
 rand_bytes(N) -> crypto:rand_bytes(N).
+
+call_to_internal() -> internal_call().
+
+internal_call() -> foo.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:

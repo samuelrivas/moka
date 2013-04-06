@@ -99,6 +99,7 @@ can_count_function_calls_test() ->
     try
         moka:replace(Moka, crypto, rand_uniform, fun(_, _) -> 0 end),
         moka:replace(Moka, crypto, rand_bytes, fun(_) -> <<>> end),
+        moka:replace(Moka, internal_call, fun() -> foo end),
         moka:load(Moka),
 
         %% Do some calls
@@ -108,18 +109,23 @@ can_count_function_calls_test() ->
         hold_state_aux:rand_uniform(foo, bar),
         hold_state_aux:rand_uniform(foo, bar),
 
+        %% And also some internal calls
+        hold_state_aux:call_to_internal(),
+
         %% Check we can count the calls
         History = moka:history(Moka),
-        ?assertEqual(
-           3,
-           length([x || {{crypto, rand_uniform}, _Args, _Rtrn} <- History])),
-        ?assertEqual(
-           2,
-           length([x || {{crypto, rand_bytes}  , _Args, _Rtrn} <- History]))
+        ?debugFmt("~p", [History]),
+        ?assertEqual(3, count_calls(crypto, rand_uniform, History)),
+        ?assertEqual(2, count_calls(crypto, rand_bytes, History)),
+        ?assertEqual(1, count_calls(hold_state_aux, internal_call, History))
     after
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
     end.
+
+count_calls(Module, Function, History) ->
+    length(
+      [x || {{M, F}, _Args, _Rtrn} <- History, M =:= Module, F =:= Function]).
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
