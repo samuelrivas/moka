@@ -1,4 +1,4 @@
-%%% Copyright (c) 2012, Samuel Rivas <samuelrivas@gmail.com>
+%%% Copyright (c) 2013, Samuel Rivas <samuelrivas@gmail.com>
 %%% All rights reserved.
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions are met:
@@ -22,39 +22,23 @@
 %%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 %%% THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-%%% @doc Acceptance tests to verify we can mok system files
-%%%
-%%% This is the main reason for Moka to exists, it is something that other mocks
-%%% like meck cannot do.
-%%%
-%%% Note that the moked code must be in a separate module, it is problematic to
-%%% mok ?MODULE. Check hold_state.erl for more details.
+%%% @doc auxiliary module for mok_system_functions tests
 
--module(mok_system_functions).
+-module(mok_system_functions_aux).
 
--include_lib("eunit/include/eunit.hrl").
+%%%_* Exports ==========================================================
+-export([copy_file/2]).
 
-can_mock_read_write_test() ->
-    Apps = sel_application:start_app(moka),
-    Moka = moka:start(mok_system_functions_aux),
-    try
-        moka:replace(Moka, file, read_file, fun(_) -> test_bin() end),
-        moka:replace(
-          Moka, file, write_file,
-          fun(_, B) ->
-                  check_equal(B, test_bin()),
-                  ok
-          end),
-        moka:load(Moka),
+%%%_* API ==============================================================
 
-        mok_system_functions_aux:copy_file(
-           "/this/must/not/exist/anywhere", "/this/is/also/fake")
-    after
-        moka:stop(Moka),
-        sel_application:stop_apps(Apps)
-    end.
+%% We want to mock this function and check it works without writing to actual
+%% files
+copy_file(Orig, Dest) ->
+    Bin = crashfy:untuple(file:read_file(Orig)),
+    crashfy:untuple(file:write_file(Dest, Bin)).
 
-check_equal(A, A) -> true;
-check_equal(A, B) -> erlang:error({not_equal, A, B}).
-
-test_bin() -> <<"Just something to test our fine coffee.">>.
+%%%_* Emacs ============================================================
+%%% Local Variables:
+%%% allout-layout: t
+%%% erlang-indent-level: 4
+%%% End:
