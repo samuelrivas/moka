@@ -44,88 +44,107 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %%%_* Tests ============================================================
-can_base_on_previous_results_test() ->
-    Apps = sel_application:start_app(moka),
-    Moka = moka:start(hold_state_aux),
-    try
-        moka:replace(
-          Moka, crypto, rand_uniform,
-          fun(_, _) ->
-                  case lists:reverse(moka:history(Moka)) of
-                      []                                  -> 0;
-                      [{_FunSpec, _Args, Return} | _] -> Return + 1
-                  end
-          end),
-        moka:load(Moka),
+can_base_on_previous_results_test_() ->
+    {setup,
+     fun() ->
+             Apps = sel_application:start_app(moka),
+             Moka = moka:start(hold_state_aux),
+             moka:replace(
+               Moka, crypto, rand_uniform,
+               fun(_, _) ->
+                       case lists:reverse(moka:history(Moka)) of
+                           []                              -> 0;
+                           [{_FunSpec, _Args, Return} | _] -> Return + 1
+                       end
+               end),
+             moka:load(Moka),
+             {Apps, Moka}
+     end,
 
-        %% Now we should be able to have a stateful, but controlled
-        %% "pseudorandom" that just counts forward
-        ?assertEqual(0, hold_state_aux:rand_uniform(0, 10)),
-        ?assertEqual(1, hold_state_aux:rand_uniform(0, 10)),
-        ?assertEqual(2, hold_state_aux:rand_uniform(0, 10)),
-        ?assertEqual(3, hold_state_aux:rand_uniform(0, 10))
-    after
+     fun({Apps, Moka}) ->
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
-    end.
+     end,
 
-can_check_arg_sequence_test() ->
-    Apps = sel_application:start_app(moka),
-    Moka = moka:start(hold_state_aux),
-    try
-        moka:replace(
-          Moka, crypto, rand_uniform,
-          fun(_, _) ->
-                  lists:foldl(
-                    fun({_FunSpec, [Arg, _], _Return}, Acc) -> Arg + Acc end,
-                    0, moka:history(Moka))
-          end),
-        moka:load(Moka),
+     %% Now we should be able to have a stateful, but controlled
+     %% "pseudorandom" that just counts forward
+     {inorder,
+      [?_assertEqual(0, hold_state_aux:rand_uniform(0, 10)),
+       ?_assertEqual(1, hold_state_aux:rand_uniform(0, 10)),
+       ?_assertEqual(2, hold_state_aux:rand_uniform(0, 10)),
+       ?_assertEqual(3, hold_state_aux:rand_uniform(0, 10))]}}.
 
-        %% Now the "pseudorandom" generator should sum all previous first
-        %% arguments.
-        ?assertEqual(0, hold_state_aux:rand_uniform(1, 10)),
-        ?assertEqual(1, hold_state_aux:rand_uniform(2, 10)),
-        ?assertEqual(3, hold_state_aux:rand_uniform(5, 10)),
-        ?assertEqual(8, hold_state_aux:rand_uniform(0, 10))
-    after
+can_check_arg_sequence_test_() ->
+    {setup,
+     fun() ->
+             Apps = sel_application:start_app(moka),
+             Moka = moka:start(hold_state_aux),
+             moka:replace(
+               Moka, crypto, rand_uniform,
+               fun(_, _) ->
+                       lists:foldl(
+                         fun({_FunSpec, [Arg, _], _Return}, Acc) ->
+                                 Arg + Acc
+                         end,
+                         0, moka:history(Moka))
+                   end),
+             moka:load(Moka),
+             {Apps, Moka}
+     end,
+
+     fun({Apps, Moka}) ->
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
-    end.
+     end,
 
-can_count_function_calls_test() ->
-    Apps = sel_application:start_app(moka),
-    Moka = moka:start(hold_state_aux),
-    try
-        moka:replace(Moka, crypto, rand_uniform, fun(_, _) -> 0 end),
-        moka:replace(Moka, crypto, rand_bytes, fun(_) -> <<>> end),
-        moka:replace(Moka, internal_call, fun() -> foo end),
-        moka:load(Moka),
+     %% Now the "pseudorandom" generator should sum all previous first
+     %% arguments.
+     {inorder,
+      [?_assertEqual(0, hold_state_aux:rand_uniform(1, 10)),
+       ?_assertEqual(1, hold_state_aux:rand_uniform(2, 10)),
+       ?_assertEqual(3, hold_state_aux:rand_uniform(5, 10)),
+       ?_assertEqual(8, hold_state_aux:rand_uniform(0, 10))]}}.
 
-        %% Do some calls
-        hold_state_aux:rand_uniform(foo, bar),
-        hold_state_aux:rand_bytes(foo),
-        hold_state_aux:rand_bytes(foo),
-        hold_state_aux:rand_uniform(foo, bar),
-        hold_state_aux:rand_uniform(foo, bar),
+can_count_function_calls_test_() ->
+    {setup,
+     fun() ->
+             Apps = sel_application:start_app(moka),
+             Moka = moka:start(hold_state_aux),
 
-        %% And also some internal calls
-        hold_state_aux:call_to_internal(),
+             moka:replace(Moka, crypto, rand_uniform, fun(_, _) -> 0 end),
+             moka:replace(Moka, crypto, rand_bytes, fun(_) -> <<>> end),
+             moka:replace(Moka, internal_call, fun() -> foo end),
+             moka:load(Moka),
 
-        %% Check we can count the calls
-        History = moka:history(Moka),
-        ?debugFmt("~p", [History]),
-        ?assertEqual(3, count_calls(crypto, rand_uniform, History)),
-        ?assertEqual(2, count_calls(crypto, rand_bytes, History)),
-        ?assertEqual(1, count_calls(hold_state_aux, internal_call, History))
-    after
+             %% Do some calls
+             hold_state_aux:rand_uniform(foo, bar),
+             hold_state_aux:rand_bytes(foo),
+             hold_state_aux:rand_bytes(foo),
+             hold_state_aux:rand_uniform(foo, bar),
+             hold_state_aux:rand_uniform(foo, bar),
+
+             %% And also some internal calls
+             hold_state_aux:call_to_internal(),
+
+             {Apps, Moka}
+     end,
+     fun({Apps, Moka}) ->
         moka:stop(Moka),
         sel_application:stop_apps(Apps)
-    end.
+     end,
 
-count_calls(Module, Function, History) ->
+     %% Check we can count the calls
+     fun({_, Moka}) ->
+             [?_assertEqual(3, calls(Moka, crypto, rand_uniform)),
+              ?_assertEqual(2, calls(Moka, crypto, rand_bytes)),
+              ?_assertEqual(1, calls(Moka, hold_state_aux, internal_call))]
+     end}.
+
+calls(Moka, Module, Function) ->
     length(
-      [x || {{M, F}, _Args, _Rtrn} <- History, M =:= Module, F =:= Function]).
+      [x || {{M, F}, _Args, _Rtrn} <- moka:history(Moka),
+            M =:= Module,
+            F =:= Function]).
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
