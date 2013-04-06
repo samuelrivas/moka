@@ -41,5 +41,5 @@ internal_call() -> foo.
 %%%_* Emacs ============================================================
 %%% Local Variables:
 %%% allout-layout: t
-%%% erlang-indent-level: 2
+%%% erlang-indent-level: 4
 %%% End:
