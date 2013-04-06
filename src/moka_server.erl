@@ -35,7 +35,7 @@
 
 %%%_* Exports ==========================================================
 -export([start_link/4, stop/1, replace/3, replace/4, export/3, history/1,
-         load/1]).
+         load/1, get_state/1]).
 
 %% This function should only be used for debugging moka
 -deprecated([{stop, 1}]).
@@ -75,6 +75,12 @@ start_link(ServerName, HistoryServer, Module, AbsCode) ->
 %% @deprecated don't use this function, it's only intended for debugging moka.
 -spec stop(moka_server()) -> ok.
 stop(MokaServ) -> sel_gen_server:call(MokaServ, stop).
+
+%% @doc Stops a moka server
+%%
+%% @deprecated don't use this function, it's only intended for debugging moka.
+-spec get_state(moka_server()) -> #state{}.
+get_state(MokaServ) -> sel_gen_server:call(MokaServ, get_state).
 
 %% @doc Use {@link moka:replace/3}
 -spec replace(moka_server(), atom(), fun()) -> ok.
@@ -154,6 +160,9 @@ safe_handle_call({export, Function, Arity}, _From, State) ->
     AbsCode = State#state.abs_code,
     {reply, ok,
      State#state{abs_code = moka_mod_utils:export(Function, Arity, AbsCode)}};
+
+safe_handle_call(get_state, _From, State) ->
+    {reply, State, State};
 
 safe_handle_call(history, _From, State) ->
     {reply, moka_history:get_calls(State#state.history_server), State};

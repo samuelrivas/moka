@@ -49,8 +49,11 @@
 
 -opaque moka() :: atom().
 
--type history_entry() :: {Funct::atom(), Args::[any()], Return::any()}.
+-type history_entry() :: {funct_spec(), Args::[any()], Return::any()}.
+-type funct_spec()    :: {Module::module(), FunctionName::atom()}.
+
 -type history()       :: [history_entry()].
+%% History entries are sorted chronologically, oldest first
 
 -export_type([moka/0, history/0, history_entry/0]).
 
