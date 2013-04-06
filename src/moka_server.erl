@@ -134,11 +134,6 @@ handle_call(Request, From, State) ->
             {stop, Error, {error, Error}, State}
     end.
 
--spec make_description(module(), replace_spec()) ->
-                              moka_call_handler:call_description().
-make_description(Module, {local, Function}) -> {Module, Function};
-make_description(_Module, {external, Module, Function}) -> {Module, Function}.
-
 safe_handle_call({replace, ReplaceSpec, NewBehaviour}, _From, State) ->
     Module        = State#state.module,
     Count         = State#state.handler_count,
@@ -211,6 +206,11 @@ modify_call_in_code({local, Funct}, Arity, HandlerName, AbsCode) ->
       {Funct, Arity},
       call_handler_call(HandlerName),
       AbsCode).
+
+-spec make_description(module(), replace_spec()) ->
+                              moka_call_handler:call_description().
+make_description(Module, {local, Function}) -> {Module, Function};
+make_description(_Module, {external, Module, Function}) -> {Module, Function}.
 
 call_handler_call(Name) -> {moka_call_handler, get_response, [Name, '$args']}.
 
