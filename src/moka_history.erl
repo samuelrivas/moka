@@ -57,8 +57,6 @@ start_link(Name) -> gen_server:start_link({local, Name}, ?MODULE, none, []).
 %% @doc Add a function call to the history
 -spec add_call(
         server(), moka_call_handler:call_description(), [any()], any()) -> ok.
-%%% FIXME: ugly hack to keep tests passing, a better solution is in the oven
-add_call(none, _,_,_) -> ok;
 add_call(ServerName, CallDescription, Args, Return) ->
     sel_gen_server:call(ServerName, {add_call, {CallDescription, Args, Return}}).
 
