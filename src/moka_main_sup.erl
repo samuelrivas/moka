@@ -22,7 +22,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc Starts a new moka process tree
--spec start_moka(atom(), atom(), module(), moka_mod_utils:abtract_code()) -> ok.
+-spec start_moka(atom(), atom(), module(), moka_mod_utils:abstract_code()) -> ok.
 start_moka(MokaServerName, MokaHistoryName, MokedModule, AbsCode) ->
     SupName = sup_name(MokaServerName),
     crashfy:untuple(
