@@ -45,7 +45,7 @@
 %%% Types
 %%%===================================================================
 -record(state, {
-          call_description :: atom(),
+          call_description :: call_description(),
           reply_fun        :: fun(),
           history_server   :: moka_history:server()
          }).

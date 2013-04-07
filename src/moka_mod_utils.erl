@@ -41,7 +41,6 @@
 
 -type forms()           :: [erl_parse:abstract_form()].
 -type remote_call()     :: {module(), atom(), Args::[term()]}.
--type internal_call()   :: {atom(), Args::[term()]}.
 -opaque abstract_code() :: forms().
 
 -export_type([abstract_code/0]).
@@ -148,7 +147,7 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
 
 %% @doc Replaces internal function calls in `AbsCode'
 %%
-%% An element `$args' in the `Args' list of the {@link internal_call()} is
+%% An element `$args' in the `Args' list of the {@link remote_call()} is
 %% replaced by the argument list in the old call.
 %%
 %% For example, if `AbsCode' represents a module `my_mod' containing next code:
@@ -165,8 +164,8 @@ replace_remote_calls({OldMod, OldFun, Arity}, NewCall, AbsCode) ->
 %%    {io, format, ["Args: ~p~n", '$args']},
 %%    AbsCode)
 %% '''
--spec replace_local_calls(mfa(), internal_call(), abstract_code()) ->
-                                    abstract_code().
+-spec replace_local_calls({atom(), byte()}, remote_call(), abstract_code()) ->
+                                 abstract_code().
 replace_local_calls({OldFun, Arity}, NewCall, AbsCode) ->
     OldCall = {OldFun, Arity},
     Filter =
