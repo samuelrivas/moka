@@ -47,6 +47,8 @@ This is a list of the main Moka capabilities, linked to their acceptance tests:
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mok_internal_functions.erl)
  * Make internal functions available for testing
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/dynamic_exports.erl)
+ * Read the history of function calls handled by a moka
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/hold_state.erl)
 
 ## Compiling and Testing
 
@@ -129,19 +131,13 @@ moked module, you can restore the old code with
 
 ## Current Status
 
-The current status is that moking explicit calls to other modules *should*
-work. All the tests pass, including a proper fsm test that checks a lot of
-different call combinations.
+The current status is that moking explicit calls to functions (either local or
+external) *should* work. All the tests pass, including a proper fsm test that
+checks a lot of different call combinations.
 
 However, Moka is quite young, and little battle-tested, so you should expect
-some quirks, and, of course, lack of functionality. For instance, no checking
-can be done on whether the expected calls have been done, like you would do with
-Meck. You can use the function that replaces the moked call, as it is used in
-`mok_system_functions` acceptance test, but that will probably have some
-limitations.
-
-Feedback about desired improvements is very welcome (and collaborations even
-more :))
+some quirks, and, of course, lack of functionality. Feedback about desired
+improvements is very welcome (and collaborations even more :))
 
 # Branching
 
