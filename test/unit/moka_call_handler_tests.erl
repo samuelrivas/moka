@@ -34,10 +34,15 @@
 call_handler_test_() ->
     {setup,
      fun() ->
+             %% Dummy server to mock the history_server
+             sel_dummy_server:start_link(history_server_name()),
+
              Handler = start_handler(fun(X,Y) -> X * Y end),
              Handler
      end,
-     fun(Handler) -> stop_handler(Handler) end,
+     fun(Handler) ->
+             sel_dummy_server:stop(history_server_name()),
+             stop_handler(Handler) end,
      fun(_) ->
              [?_assertEqual(0, get_response([0, 1])),
               ?_assertEqual(6, get_response([2, 3]))]
@@ -51,6 +56,9 @@ parallel_test_() ->
     {"Call handler code can run in parallel",
      {setup,
       fun() ->
+              %% Dummy server to mock the history_server
+              sel_dummy_server:start_link(history_server_name()),
+
               Relay   = start_relay(),
               Handler = start_handler(
                           fun(wait) -> wait_message(Relay);
@@ -59,6 +67,7 @@ parallel_test_() ->
               {Relay, Handler}
       end,
       fun({Relay, Handler}) ->
+              sel_dummy_server:stop(history_server_name()),
               stop_relay(Relay),
               stop_handler(Handler)
       end,
@@ -73,10 +82,13 @@ parallel_test_() ->
 %%%-------------------------------------------------------------------
 handler_name() -> test_handler.
 
+history_server_name() -> dummy_history_server.
+
 description() -> {a_module, a_function}.
 
 start_handler(Fun) ->
-    moka_call_handler:start_link(handler_name(), description(), Fun, none).
+    moka_call_handler:start_link(
+      handler_name(), description(), Fun, history_server_name()).
 
 stop_handler(Pid) ->
     moka_call_handler:stop(handler_name()),
