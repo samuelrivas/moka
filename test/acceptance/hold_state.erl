@@ -25,15 +25,15 @@
 %%% @doc acceptance tests for stateful moking functionality
 %%%
 %%% Just for fun, we use crypto as target, as it represents very nicely a module
-%%% with offering functionality complex state involved
+%%% offering functionality with complex state involved
 %%%
 %%% Note we mok an auxiliary module (hold_state_aux) instead of calling crypto
 %%% directly in this module as we have to be sure we reload code after we load
 %%% the moka. Even if we exported functions to call ?MODULE: to use the new
 %%% version of the code, the test will run always the old version of the code
-%%% until it finishes. This complicates things a bit, for example we will fail
-%%% trying to unload the moka (or kill the test process if moka is not gentle
-%%% enough to check for lingering process before unloading the code).
+%%% until it finishes. This would complicate things a bit, for example we would
+%%% fail trying to unload the moka (or kill the test process if moka were not
+%%% gentle enough to check for lingering process before unloading the code).
 
 -module(hold_state).
 
@@ -57,7 +57,7 @@ can_base_on_previous_results_test_() ->
      cleanup_fun(),
 
      %% Now we should be able to have a stateful, but controlled
-     %% "pseudorandom" that just counts forward
+     %% "pseudorandom" generator that just counts forward
      {inorder,
       [?_assertEqual(0, hold_state_aux:rand_uniform(0, 10)),
        ?_assertEqual(1, hold_state_aux:rand_uniform(0, 10)),
