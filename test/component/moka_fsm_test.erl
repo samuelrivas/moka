@@ -201,9 +201,7 @@ start(Module) ->
 setup_get_history(Moka) ->
     moka:replace(
       Moka, internal_get_history,
-      fun() -> take_last(prunned_history_length(), moka:history(Moka)) end).
-
-prunned_history_length() -> 3.
+      fun() -> sel_lists:take_last(3, moka:history(Moka)) end).
 
 call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
@@ -449,6 +447,3 @@ affected_by_replacement(FunSpec, [Replaced | T]) ->
         true  -> Replaced;
         false -> affected_by_replacement(FunSpec, T)
     end.
-
-take_last(N, L) when length(L) =< N -> L;
-take_last(N, [_|T]) -> take_last(N, T).
