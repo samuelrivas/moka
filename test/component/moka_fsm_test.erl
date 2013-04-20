@@ -102,7 +102,8 @@ postcondition(_, _, _StateData, {call, _Mod, replace, _Args}, Res) ->
 postcondition(_, _, _StateData, {call, _Mod, export, _Args}, Res) ->
     Res =:= ok;
 postcondition(_, _, StateData, {call, _Mod, get_moked_history, _Args}, Res) ->
-    Res =:= StateData#state.history;
+    %% get_moked_history returns a pruned history list
+    lists:suffix(Res, StateData#state.history);
 
 %% Transition postconditions
 postcondition(initial, new, _StateData, _Call, _Res) ->
@@ -192,8 +193,17 @@ start(Module) ->
     Moka.
 
 %% Hook in this internal function to get the history the moka can see
+%%
+%% NOTE: The history would grow exponentially if this call returned the whole
+%% history (as that return value goes to the history itself). Thus, we prune the
+%% result to a fixed amount of the latest entries to keep the tests in a
+%% reasonable space
 setup_get_history(Moka) ->
-    moka:replace(Moka, internal_get_history, fun() -> moka:history(Moka) end).
+    moka:replace(
+      Moka, internal_get_history,
+      fun() -> take_last(prunned_history_length(), moka:history(Moka)) end).
+
+prunned_history_length() -> 3.
 
 call({Function, Arity}) ->
     try apply(origin_module(), Function, make_args(Arity))
@@ -439,3 +449,6 @@ affected_by_replacement(FunSpec, [Replaced | T]) ->
         true  -> Replaced;
         false -> affected_by_replacement(FunSpec, T)
     end.
+
+take_last(N, L) when length(L) =< N -> L;
+take_last(N, [_|T]) -> take_last(N, T).
