@@ -48,6 +48,7 @@
 
 -record(state, {
           module            :: module(),
+          cover_compiled    :: boolean(),
           abs_code          :: moka_mod_utils:abstract_code(),
           history_server    :: moka_history:server(),
           handler_count = 0 :: non_neg_integer()
@@ -115,6 +116,7 @@ init({Mod, AbsCode, HistoryServer}) ->
         process_flag(trap_exit, true),
         {ok, #state{
                 module         = Mod,
+                cover_compiled = moka_mod_utils:is_cover_compiled(Mod),
                 abs_code       = AbsCode,
                 history_server = HistoryServer
                }}
@@ -179,8 +181,9 @@ handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
-terminate(_Reason, State) ->
-    moka_mod_utils:restore_module(State#state.module).
+terminate(_Reason, #state{module         = Module,
+                          cover_compiled = CoverCompiled}) ->
+    moka_mod_utils:restore_module(Module, CoverCompiled).
 
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.

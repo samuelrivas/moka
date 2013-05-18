@@ -37,8 +37,8 @@
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
-         replace_remote_calls/3, replace_local_calls/3, to_str/1, export/3
-         is_cover_compiled/1, get_cover_compiled_code/1]).
+         restore_module/2, replace_remote_calls/3, replace_local_calls/3,
+         to_str/1, export/3, is_cover_compiled/1, get_cover_compiled_code/1]).
 
 -type forms()           :: [erl_parse:abstract_form()].
 -type remote_call()     :: {module(), atom(), Args::[term()]}.
@@ -96,17 +96,32 @@ load_abs_code(Module, AbsCode) ->
     Code = compile_forms(set_module_name(Module, AbsCode)),
     load_new_code(Module, Code).
 
+%% @equiv restore_module(Module, false)
+-spec restore_module(module()) -> ok.
+restore_module(Module) -> restore_module(Module, false).
+
 %% @doc Restores the original module behaviour.
 %%
 %% To restore the original behaviour, this function unloads the module and loads
-%% it again from the code search path.
+%% it again from the code search path if `CoverCompiled' is false or from the
+%% cover database if it is true.
+%%
+%% Note that reading from Cover's database is a violation of The Holy Laws of
+%% Encapsulation, and thus may be punished without prior notice by changes in
+%% OTP. A better solution is waiting to be found.
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--spec restore_module(module()) -> ok.
-restore_module(Module) ->
+-spec restore_module(module(), CoverCompiled::boolean()) -> ok.
+restore_module(Module, false) ->
     unload(Module),
-    handle_load_result(Module, code:load_file(Module)).
+    handle_load_result(Module, code:load_file(Module));
+restore_module(Module, true) ->
+    Code = get_cover_compiled_code(Module),
+    %% Hack: using 'cover_compiled' as file name works to fool cover, but uses
+    %% unspecified behaviour
+    load_new_code(Module, Code, cover_compiled).
+
 
 %% @doc Whether `Module' is cover compiled
 %%
@@ -280,9 +295,14 @@ set_module_name(NewName, [{attribute, Line, module, Mod} | T]) ->
 set_module_name(NewName, [H | T]) ->
     [H | set_module_name(NewName, T)].
 
-load_new_code(Module, Code) ->
+load_new_code(Module, Code) -> load_new_code(Module, Code, loaded_by_moka).
+
+%% Note that file name is what code:load_binary/3 expects, not necessarily a
+%% valid file name. We use 'loaded_by_moka' by default as we don't want to point
+%% to any file.
+load_new_code(Module, Code, FileName) ->
     unload(Module),
-    handle_load_result(Module, code:load_binary(Module, "no file", Code)).
+    handle_load_result(Module, code:load_binary(Module, FileName, Code)).
 
 handle_load_result(Module, {module, Module}) ->
     ok;
