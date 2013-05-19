@@ -37,6 +37,34 @@ get_beam_code_test_() ->
         {cannot_get_object_code, FakeModule},
         moka_mod_utils:get_object_code(FakeModule))].
 
+get_cover_compiled_code_test_() ->
+    FakeModule = fake_module(),
+    TestModule = test_module(),
+    {setup,
+     fun() ->
+             WasCoverCompiled = moka_mod_utils:is_cover_compiled(TestModule),
+             crashfy:untuple(cover:compile_beam(TestModule)),
+             WasCoverCompiled
+     end,
+     fun(WasCoverCompiled) ->
+             case WasCoverCompiled of
+                 true  -> ok;
+                 false -> moka_mod_utils:restore_module(TestModule)
+             end
+     end,
+     [?_assert(is_binary(moka_mod_utils:get_cover_compiled_code(TestModule))),
+      ?_assertThrow(
+         {cannot_get_cover_compiled_code, FakeModule},
+         moka_mod_utils:get_cover_compiled_code(FakeModule)),
+
+      %% We assume lists will not be cover compiled in any sane system, but
+      %% still smoke test it to get better info if the assumption fails
+      ?_assertNot(moka_mod_utils:is_cover_compiled(lists)),
+      ?_assertThrow(
+         {cannot_get_cover_compiled_code, FakeModule},
+         moka_mod_utils:get_cover_compiled_code(FakeModule))
+     ]}.
+
 get_abs_code_test_() ->
     FakeModule = fake_module(),
     [?_assert(is_list(moka_mod_utils:get_abs_code(test_module()))),
