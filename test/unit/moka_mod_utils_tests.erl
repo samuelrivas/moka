@@ -188,8 +188,9 @@ export_unexported_functions_fail_test_() ->
 %% in the same VM makes no sense as a successful run will load the module and
 %% invalidate next calls to this test
 %%
-%% Note also that rebar seems to be pre-loading all test modules, so this test
-%% will always pass when run through make test
+%% Note also that rebar will load the test modules to run cover before running
+%% the tests, so this test would pass when run as part of make test, even before
+%% fixing the bug.
 %%
 %% TODO find the way of removing all those preconditions on the state the VM
 %% should be before running this test, it is pretty useless from the Continuous
