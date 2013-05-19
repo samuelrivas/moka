@@ -225,7 +225,7 @@ moka_fsm_test_() ->
     {setup,
      fun() -> sel_application:start_app(moka) end,
      fun(Apps) -> sel_application:stop_apps(Apps) end,
-     sel_test:props_to_eunit(?MODULE)}.
+     sel_test:props_to_eunit(?MODULE, 20)}.
 
 prop_moka_fsm() ->
     ?FORALL(
