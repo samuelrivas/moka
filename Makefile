@@ -23,7 +23,14 @@ compile: get-deps
 check: compile
 	$(REBAR) xref
 
-test: compile
+# Run the tests with and without cover as it affects quite a bit to the
+# behaviour
+test: test-without-cover test-with-cover
+
+test-with-cover: compile
+	COVER_ENABLED=true $(REBAR) eunit skip_deps=true
+
+test-without-cover: compile
 	$(REBAR) eunit skip_deps=true
 
 doc: $(REBAR)

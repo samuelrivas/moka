@@ -1,0 +1,4 @@
+case os:getenv("COVER_ENABLED") of
+    "true" -> [{cover_enabled, true } | CONFIG];
+    _      -> [{cover_enabled, false} | CONFIG]
+end.
