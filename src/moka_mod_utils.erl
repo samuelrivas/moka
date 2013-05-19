@@ -37,7 +37,8 @@
 -module(moka_mod_utils).
 
 -export([get_object_code/1, get_abs_code/1, load_abs_code/2, restore_module/1,
-         replace_remote_calls/3, replace_local_calls/3, to_str/1, export/3]).
+         replace_remote_calls/3, replace_local_calls/3, to_str/1, export/3
+         is_cover_compiled/1, get_cover_compiled_code/1]).
 
 -type forms()           :: [erl_parse:abstract_form()].
 -type remote_call()     :: {module(), atom(), Args::[term()]}.
@@ -106,6 +107,37 @@ load_abs_code(Module, AbsCode) ->
 restore_module(Module) ->
     unload(Module),
     handle_load_result(Module, code:load_file(Module)).
+
+%% @doc Whether `Module' is cover compiled
+%%
+%% Returns `false' equally for non cover compiled and for non existing modules
+-spec is_cover_compiled(module()) -> boolean().
+is_cover_compiled(Module) ->
+    case cover:is_compiled(Module) of
+        {file, _} -> true;
+        false     -> false
+    end.
+
+%% @doc Returns the cover compiled object code of a cover compiled module
+%%
+%% This binary can be reloaded with {@link restore_module/2} after loading other
+%% versions of the module, and cover will keep functioning and counting coverage
+%% after it.
+%%
+%% <b>Here be dragons:</b> this function uses internal implementation details
+%% of cover, use it with caution.
+%%
+%% @throws {cannot_get_cover_compiled_code, Module}
+-spec get_cover_compiled_code(module()) -> binary().
+get_cover_compiled_code(Module) ->
+    %% FIXME The binary table is an implementation detail of cover we are
+    %% (ab)using to be able to restore cover compiled code without resetting
+    %% cover and re-cover-compiling the module.
+    %% http://xkcd.com/292/
+    case ets:lookup(cover_binary_code_table, Module) of
+        [{Module, Binary}] -> Binary;
+        []                 -> throw({cannot_get_cover_compiled_code, Module})
+    end.
 
 %% @doc Returns a pretty printed version of `AbsCode'
 -spec to_str(abstract_code()) -> iolist().
