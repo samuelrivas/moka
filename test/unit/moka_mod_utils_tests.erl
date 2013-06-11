@@ -178,23 +178,20 @@ export_unexported_functions_fail_test_() ->
 %% Test we can load code for a module even if the code was never loaded (former
 %% bug)
 %%
-%% NOTE even without fixing the bug this test targets, this test fails only if
-%% unloaded_module was never loaded in the VM as then code:delete returns
-%% false. Once a module has been loaded for the first time, a new entry in the
-%% module table is created forever and code:delete will succeed unless the code
-%% needs purging. Thus we cannot use the same module as we use for the rest of
-%% the tests, and we depend on that module never being loaded before for this
-%% test to be meaningful. Also, take into account that running this test twice
-%% in the same VM makes no sense as a successful run will load the module and
-%% invalidate next calls to this test
+%% NOTE even before fixing the bug, this test would fail only if unloaded_module
+%% was never loaded in the VM. The issue was triggered because code:delete
+%% returns false in that situation. Once a module has been loaded for the first
+%% time, a new entry in the module table is created forever and code:delete
+%% succeeds unless the code needs purging. Thus we cannot use the same module as
+%% we use for the rest of the tests, and we depend on that module never being
+%% loaded before for this test to be meaningful. Also, take into account that
+%% running this test twice in the same VM makes no sense as a successful run
+%% will load the module and invalidate next calls to this test
 %%
-%% Note also that rebar will load the test modules to run cover before running
-%% the tests, so this test would pass when run as part of make test, even before
-%% fixing the bug.
-%%
-%% TODO find the way of removing all those preconditions on the state the VM
-%% should be before running this test, it is pretty useless from the Continuous
-%% Integration perspective
+%% Note also that cover compiling the unloaded module will also load it and
+%% invalidate the test. Specifically, running this test with rebar with cover
+%% activated is meaningless. For moka this is not an issue as we are running the
+%% tests both with cover enabled and disabled.
 can_load_code_test_() ->
     Module = unloaded_module(),
     {setup,
