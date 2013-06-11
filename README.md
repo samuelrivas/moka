@@ -63,19 +63,54 @@ make all
 ```
 
 To check everything works as expected, `make test` should run the
-test cases successfully with a coverage about 80%. You will get some cover
-warnings like these:
+test cases successfully with a coverage about 80%.
+
+The tests are run twice, once with cover disabled and once with cover
+enabled. The reason to have a run without cover is that moka needs to know
+whether a module is cover-compiled, some behaviour changes when moking
+cover-compiled modules.
+
+At the end of the cover-compiled test run you will see some warnings like these:
+
 ```
 ERROR: Cover analyze failed for dynamic_exports_aux: {not_cover_compiled,
-                                                     dynamic_exports_aux}
-       "/home/samuel/.../moka/.eunit/dynamic_exports_aux.beam"
+                                                     moka_test_module}
+       "/home/samuel/.../moka/.eunit/moka_test_module.beam"
 ```
 
-This is because Moka doesn't play well with cover yet (cover fails for the
-modules that are moked as part of the testing process).
+This is because rebar cover compiles everything, runs the tests, and then
+collects the results. However some tests load (or re-load) binaries, without
+restoring the previously loaded version. When rebar tries to collect the results
+for those modules it fails since they are no longer cover-compiled. Most of the
+tests take care of this and restore the previously loaded module, but for some
+it is too much overhead to fix the warning for the actual value that are still
+warning fixing there is too much overhead for the actual. Those modules are
+basically test modules that no other application should use anyway.
 
 `make check` will run static checks on the code. Currently it just runs some
 predefined xref analysis.
+
+## Some Words on Cover
+
+The integration with cover is a bit tricky. Without going too deep in the
+technical details, the bottom line is:
+
+ * The accumulated coverage before a module is moked is restored after stopping
+   the moka, but it will not be increased while the module is moked. That
+   applies to the module specified in `moka:start`, but not to the target
+   modules (when calling `moka:replace` for example). Coverage for the latter
+   still accumulates.
+ * If you attempt to get coverage information for a module while it is moked you
+   will confuse cover and probably lose all coverage information. Moka may not
+   be able to restore the coverage figures after calling `moka:stop`.
+ * Cover compiling a module while it is moked will confuse moka, the code will
+   no longer be moked, but moka processes may still be running in inconsistent
+   state.
+
+In most of the usual situations moka will play well with cover anyway, just
+remember that coverage doesn't increase while the module is moked. Solving this
+issues is in the backlog, but not very high, as it seems to require some dirty
+hacking.
 
 ## Running
 
