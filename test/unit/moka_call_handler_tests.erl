@@ -31,22 +31,30 @@
 %%%-------------------------------------------------------------------
 %%% Test cases
 %%%-------------------------------------------------------------------
-call_handler_test_() ->
+normal_return_test_() ->
     {setup,
-     fun() ->
-             %% Dummy server to mock the history_server
-             sel_dummy_server:start_link(history_server_name()),
+     fun() -> setup_handler(fun(X,Y) -> X * Y end) end,
+     fun cleanup_handler/1,
+     [?_assertEqual(0, get_response([0, 1])),
+      ?_assertEqual(6, get_response([2, 3]))]}.
 
-             Handler = start_handler(fun(X,Y) -> X * Y end),
-             Handler
-     end,
-     fun(Handler) ->
-             sel_dummy_server:stop(history_server_name()),
-             stop_handler(Handler) end,
-     fun(_) ->
-             [?_assertEqual(0, get_response([0, 1])),
-              ?_assertEqual(6, get_response([2, 3]))]
-     end}.
+throw_test_() ->
+    {setup,
+     fun() -> setup_handler(fun erlang:throw/1) end,
+     fun cleanup_handler/1,
+     ?_assertThrow(ouch, get_response([ouch]))}.
+
+exit_test_() ->
+    {setup,
+     fun() -> setup_handler(fun erlang:exit/1) end,
+     fun cleanup_handler/1,
+     ?_assertExit(ouch, get_response([ouch]))}.
+
+error_test_() ->
+    {setup,
+     fun() -> setup_handler(fun erlang:error/1) end,
+     fun cleanup_handler/1,
+     ?_assertError(ouch, get_response([ouch]))}.
 
 %% Start a third process that acts as message relay, then one test process will
 %% wait for a message from the relay and the other will send the message to the
@@ -85,6 +93,15 @@ handler_name() -> test_handler.
 history_server_name() -> dummy_history_server.
 
 description() -> {a_module, a_function}.
+
+setup_handler(Fun) ->
+    %% Dummy server to mock the history_server
+    sel_dummy_server:start_link(history_server_name()),
+    start_handler(Fun).
+
+cleanup_handler(Handler) ->
+    sel_dummy_server:stop(history_server_name()),
+    stop_handler(Handler).
 
 start_handler(Fun) ->
     moka_call_handler:start_link(
