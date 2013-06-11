@@ -26,6 +26,10 @@
 %%%
 %%% Moked functions will be redirected to a call handler that will hold the
 %%% specifications created with {@link moka} "replace" calls.
+%%%
+%%% Exceptions occurring when calling the provided behaviour (reply_fun) are
+%%% wrapped safely (so that no aliasing is possible) and sent to the client (the
+%%% calling process) that would raise them again.
 
 -module(moka_call_handler).
 
@@ -73,9 +77,22 @@ start_link(Name, CallDescription, Fun, HistoryServer) when is_function(Fun) ->
 %%
 %% Moked modules call this function instead of the original destination
 %% function.
+%%
+%% If the call_handler fun throws any exception, the call_handler server will
+%% catch it, wrap it safely (with no possible aliasing) and send it as a
+%% result to the caller process (i.e. the one evaluating this function). This
+%%function will then raise the exception in the caller process.
 -spec get_response(call_handler_ref(), [term()]) -> term().
 get_response(CallHandler, Args) when is_list(Args) ->
-    sel_gen_server:call(CallHandler, {get_response, Args}).
+    ExceptionTag = make_ref(),
+    Response     = sel_gen_server:call(
+                     CallHandler, {get_response, ExceptionTag, Args}),
+    case is_exception(ExceptionTag, Response) of
+        true ->
+            raise_exception(Response);
+        false ->
+            Response
+    end.
 
 %% @doc Terminates a call handler
 -spec stop(call_handler_ref()) -> ok.
@@ -93,10 +110,14 @@ init({CallDescription, Fun, HistoryServer}) ->
             history_server   = HistoryServer}}.
 
 %% @private
-handle_call({get_response, Args}, From, State) ->
+handle_call({get_response, ExceptionTag, Args}, From, State) ->
     proc_lib:spawn_link(
       fun() ->
-              Result = erlang:apply(State#state.reply_fun, Args),
+              Result =
+                  get_result(
+                    ExceptionTag,
+                    State#state.reply_fun,
+                    Args),
               moka_history:add_call(
                 State#state.history_server,
                 State#state.call_description,
@@ -126,3 +147,18 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+get_result(ExceptionTag, ReplyFun, Args) ->
+    try erlang:apply(ReplyFun, Args)
+    catch
+        Class:Reason ->
+            wrap_exception(ExceptionTag, Class, Reason, erlang:get_stacktrace())
+    end.
+
+wrap_exception(ExceptionTag, Class, Reason, Stacktrace) ->
+    {moka_exception, ExceptionTag, Class, Reason, Stacktrace}.
+
+is_exception(Tag, {moka_exception, Tag, _, _, _}) -> true;
+is_exception(_, _)                                -> false.
+
+raise_exception({moka_exception, _Tag, Class, Reason, Stacktrace}) ->
+    erlang:raise(Class, Reason, Stacktrace).
