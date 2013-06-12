@@ -49,8 +49,10 @@
 
 -opaque moka() :: atom().
 
--type history_entry() :: {funct_spec(), Args::[any()], Return::any()}.
+-type history_entry() :: {funct_spec(), Args::[any()], Result::result()}.
+-type result()        :: Return::any() | {exception, class(), Reason::any()}.
 -type funct_spec()    :: {Module::module(), FunctionName::atom()}.
+-type class()         :: throw | exit | error.
 
 -type history()       :: [history_entry()].
 %% History entries are sorted chronologically, oldest first
