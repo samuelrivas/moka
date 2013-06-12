@@ -1,7 +1,10 @@
-REBAR_REPO = https://github.com/basho/rebar.git
-REBAR_VERSION = 2.0.0
-REBAR_REPO_DIR = rebar
-REBAR = $(REBAR_REPO_DIR)/rebar
+REBAR_REPO := https://github.com/basho/rebar.git
+REBAR_VERSION := 2.0.0
+REBAR_REPO_DIR := rebar
+REBAR := $(REBAR_REPO_DIR)/rebar
+DIALYZER_PLT := .dialyer.plt
+PRODUCTION_ERLS := $(wildcard src/*.erl)
+PRODUCTION_BEAMS := $(addprefix ebin/, $(notdir $(PRODUCTION_ERLS:.erl=.beam)))
 
 .PHONY: doc clean clean-all
 
@@ -20,7 +23,21 @@ get-deps: $(REBAR)
 compile: get-deps
 	$(REBAR) compile
 
-check: compile
+check: xref dialyzer
+
+dialyzer: compile $(DIALYZER_PLT)
+	dialyzer --plt $(DIALYZER_PLT) $(PRODUCTION_BEAMS) \
+		 -Wunmatched_returns \
+		 -Werror_handling \
+		 -Wunderspecs \
+		 -Wrace_conditions
+
+$(DIALYZER_PLT):
+	dialyzer --build_plt --output_plt $(DIALYZER_PLT) \
+		 deps/samerlib/ebin \
+		 --apps stdlib kernel tools syntax_tools compiler erts \
+
+xref: compile
 	$(REBAR) xref
 
 # Run the tests with and without cover as it affects quite a bit to the
