@@ -14,7 +14,7 @@
 %% @private
 %% @doc Callback to start the moka application
 -spec start(normal | {takeover, node()} | {failover, node()}, term()) ->
-                   {ok, pid()} | {ok, pid(), State::term()} | {error, term()}.
+                   {ok, pid()} | {error, term()}.
 start(_StartType, _StartArgs) -> moka_main_sup:start_link().
 
 %% @private

@@ -57,7 +57,7 @@
 %% load path).
 %%
 %% @throws {cannot_get_object_code, Module}
--spec get_object_code(module()) -> binary().
+-spec get_object_code(atom()) -> binary().
 get_object_code(Module) ->
     case code:get_object_code(Module) of
         {_Mod, Code, _File} -> Code;
@@ -75,7 +75,7 @@ get_object_code(Module) ->
 %%
 %% @throws {no_abstract_code, module()}
 %%       | {cannot_get_object, module()}
--spec get_abs_code(module()) -> abstract_code().
+-spec get_abs_code(atom()) -> abstract_code().
 get_abs_code(Module) ->
     ObjectCode = get_object_code(Module),
     get_object_code_forms(ObjectCode).
@@ -91,13 +91,13 @@ get_abs_code(Module) ->
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--spec load_abs_code(module(), abstract_code()) -> ok.
+-spec load_abs_code(atom(), abstract_code()) -> ok.
 load_abs_code(Module, AbsCode) ->
     Code = compile_forms(set_module_name(Module, AbsCode)),
     load_new_code(Module, Code).
 
 %% @equiv restore_module(Module, false)
--spec restore_module(module()) -> ok.
+-spec restore_module(atom()) -> ok.
 restore_module(Module) -> restore_module(Module, false).
 
 %% @doc Restores the original module behaviour.
@@ -112,7 +112,7 @@ restore_module(Module) -> restore_module(Module, false).
 %%
 %% @throws {processes_using_old_code, Module}
 %%       | {cannot_load_code, {Module, Reason}}
--spec restore_module(module(), CoverCompiled::boolean()) -> ok.
+-spec restore_module(atom(), CoverCompiled::boolean()) -> ok.
 restore_module(Module, false) ->
     unload(Module),
     handle_load_result(Module, code:load_file(Module));
@@ -126,7 +126,7 @@ restore_module(Module, true) ->
 %% @doc Whether `Module' is cover compiled
 %%
 %% Returns `false' equally for non cover compiled and for non existing modules
--spec is_cover_compiled(module()) -> boolean().
+-spec is_cover_compiled(atom()) -> boolean().
 is_cover_compiled(Module) ->
     case cover:is_compiled(Module) of
         {file, _} -> true;
@@ -143,7 +143,7 @@ is_cover_compiled(Module) ->
 %% of cover, use it with caution.
 %%
 %% @throws {cannot_get_cover_compiled_code, Module}
--spec get_cover_compiled_code(module()) -> binary().
+-spec get_cover_compiled_code(atom()) -> binary().
 get_cover_compiled_code(Module) ->
     %% FIXME The binary table is an implementation detail of cover we are
     %% (ab)using to be able to restore cover compiled code without resetting
