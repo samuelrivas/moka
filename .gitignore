@@ -9,3 +9,4 @@ deps
 .eunit/
 doc/design/*.eps
 rebar/*
+.dialyzer.plt

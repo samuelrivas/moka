@@ -2,7 +2,7 @@ REBAR_REPO := https://github.com/basho/rebar.git
 REBAR_VERSION := 2.0.0
 REBAR_REPO_DIR := rebar
 REBAR := $(REBAR_REPO_DIR)/rebar
-DIALYZER_PLT := .dialyer.plt
+DIALYZER_PLT := .dialyzer.plt
 PRODUCTION_ERLS := $(wildcard src/*.erl)
 PRODUCTION_BEAMS := $(addprefix ebin/, $(notdir $(PRODUCTION_ERLS:.erl=.beam)))
 
