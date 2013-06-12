@@ -47,7 +47,39 @@ exceptions_test_() ->
       ?_assertExit (ouch,            mok_exceptions_aux:call({exit, ouch})),
       ?_assertError(function_clause, mok_exceptions_aux:call(foo))]}.
 
+exceptions_history_test_() ->
+    {setup,
+     fun() ->
+             Apps = sel_application:start_app(moka),
+             Moka = moka:start(mok_exceptions_aux),
+             moka:replace(Moka, internal, crashy_fun()),
+             moka:load(Moka),
+             %% Do some crashes
+             catch mok_exceptions_aux:call({throw, ouch}),
+             catch mok_exceptions_aux:call({error, doh}),
+             catch mok_exceptions_aux:call({exit,  gna}),
+             {Apps, Moka}
+     end,
+     fun({Apps, Moka}) ->
+             moka:stop(Moka),
+             sel_application:stop_apps(Apps)
+     end,
+     fun({_Apps, Moka}) ->
+             History = moka:history(Moka),
+             [match_exception_(throw, ouch, lists:nth(1, History)),
+              match_exception_(error, doh , lists:nth(2, History)),
+              match_exception_(exit , gna , lists:nth(3, History))]
+     end}.
+
 %%%_* Private Functions ================================================
+
+match_exception_(Class, Reason, HistoryEntry) ->
+    ?_assertMatch(
+       {{mok_exceptions_aux, internal},
+        _Args,
+        {exception, Class, Reason}},
+       HistoryEntry
+      ).
 
 crashy_fun() ->
     fun({throw, X}) -> throw(X);
