@@ -121,7 +121,7 @@ handle_call({get_response, ExceptionTag, Args}, From, State) ->
               moka_history:add_call(
                 State#state.history_server,
                 State#state.call_description,
-                Args, Result),
+                Args, result_to_history(ExceptionTag, Result)),
 
               gen_server:reply(From, Result)
       end),
@@ -162,3 +162,12 @@ is_exception(_, _)                                -> false.
 
 raise_exception({moka_exception, _Tag, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
+
+result_to_history(Tag, Result) ->
+    case is_exception(Tag, Result) of
+        true  -> exception_to_history(Result);
+        false -> Result
+    end.
+
+exception_to_history({moka_exception, _Tag, Class, Reason, _Stacktrace}) ->
+    {exception, Class, Reason}.
