@@ -295,11 +295,11 @@ set_module_name(NewName, [{attribute, Line, module, Mod} | T]) ->
 set_module_name(NewName, [H | T]) ->
     [H | set_module_name(NewName, T)].
 
-load_new_code(Module, Code) -> load_new_code(Module, Code, loaded_by_moka).
+load_new_code(Module, Code) -> load_new_code(Module, Code, "loaded_by_moka").
 
 %% Note that file name is what code:load_binary/3 expects, not necessarily a
-%% valid file name. We use 'loaded_by_moka' by default as we don't want to point
-%% to any file.
+%% valid file name. We use "loaded_by_moka" by default as we don't want to point
+%% to any file (but dialyzer complains if it is not a string)
 load_new_code(Module, Code, FileName) ->
     unload(Module),
     handle_load_result(Module, code:load_binary(Module, FileName, Code)).
