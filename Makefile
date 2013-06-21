@@ -38,7 +38,7 @@ $(DIALYZER_PLT):
 		 --apps stdlib kernel tools syntax_tools compiler erts \
 
 xref: compile
-	$(REBAR) xref
+	$(REBAR) xref skip_deps=true
 
 # Run the tests with and without cover as it affects quite a bit to the
 # behaviour
