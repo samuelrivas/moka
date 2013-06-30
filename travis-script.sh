@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
-make check
 make test
+make check
 make doc
