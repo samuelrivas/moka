@@ -29,7 +29,7 @@
 %%%
 %%% Exceptions occurring when calling the provided behaviour (reply_fun) are
 %%% wrapped safely (so that no aliasing is possible) and sent to the client (the
-%%% calling process) that would raise them again.
+%%% calling process) that will raise them again.
 
 -module(moka_call_handler).
 
@@ -81,7 +81,7 @@ start_link(Name, CallDescription, Fun, HistoryServer) when is_function(Fun) ->
 %% If the call_handler fun throws any exception, the call_handler server will
 %% catch it, wrap it safely (with no possible aliasing) and send it as a
 %% result to the caller process (i.e. the one evaluating this function). This
-%%function will then raise the exception in the caller process.
+%% function will then raise the exception in the caller process.
 -spec get_response(call_handler_ref(), [term()]) -> term().
 get_response(CallHandler, Args) when is_list(Args) ->
     ExceptionTag = make_ref(),
