@@ -49,6 +49,8 @@ This is a list of the main Moka capabilities, linked to their acceptance tests:
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/dynamic_exports.erl)
  * Read the history of function calls handled by a moka
    [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/hold_state.erl)
+ * Handle exceptions transparently
+   [(test)](https://github.com/samuelrivas/moka/blob/master/test/acceptance/mok_exceptions.erl)
 
 ## Compiling and Testing
 
