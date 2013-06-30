@@ -26,16 +26,11 @@ compile: get-deps
 check: xref dialyzer
 
 dialyzer: compile $(DIALYZER_PLT)
-	dialyzer --plt $(DIALYZER_PLT) $(PRODUCTION_BEAMS) \
-		 -Wunmatched_returns \
-		 -Werror_handling \
-		 -Wunderspecs \
-		 -Wrace_conditions
+	DIALYZER_PLT=$(DIALYZER_PLT) \
+	PRODUCTION_BEAMS="$(PRODUCTION_BEAMS)" ./dialyze.sh
 
 $(DIALYZER_PLT):
-	dialyzer --build_plt --output_plt $(DIALYZER_PLT) \
-		 deps/samerlib/ebin \
-		 --apps stdlib kernel tools syntax_tools compiler erts \
+	DIALYZER_PLT=$(DIALYZER_PLT) ./make-plt.sh
 
 xref: compile
 	$(REBAR) xref skip_deps=true
