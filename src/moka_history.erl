@@ -30,7 +30,7 @@
 %%%_* Exports ==========================================================
 
 %% API
--export([start_link/1, stop/1, add_call/4, get_calls/1]).
+-export([start_link/1, stop/1, add_return/4, add_exception/5, get_calls/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -54,11 +54,27 @@
 -spec start_link(server()) -> {ok, pid()}.
 start_link(Name) -> gen_server:start_link({local, Name}, ?MODULE, none, []).
 
-%% @doc Add a function call to the history
+%% @doc Add a successful function call to the history
+-spec add_return(
+        server(), moka_call_handler:call_description(),
+        [any()], moka:return()) -> ok.
+add_return(ServerName, CallDescription, Args, Value) ->
+    add_call(ServerName, CallDescription, Args, {return, Value}).
+
+%% @doc Add a failed function call to the history
+-spec add_exception(
+        server(), moka_call_handler:call_description(),
+        [any()], moka:class(), any()) -> ok.
+add_exception(ServerName, CallDescription, Args, Class, Reason) ->
+    add_call(ServerName, CallDescription, Args, {exception, Class, Reason}).
+
 -spec add_call(
-        server(), moka_call_handler:call_description(), [any()], any()) -> ok.
-add_call(ServerName, CallDescription, Args, Return) ->
-    sel_gen_server:call(ServerName, {add_call, {CallDescription, Args, Return}}).
+        server(),
+        moka_call_handler:call_description(),
+        [any()],
+        moka:result()) -> ok.
+add_call(ServerName, CallDescription, Args, Result) ->
+    sel_gen_server:call(ServerName, {add_call, {CallDescription, Args, Result}}).
 
 %% @doc Get the call history
 -spec get_calls(server()) -> moka:history().
