@@ -69,7 +69,7 @@ test cases successfully with a coverage about 80%.
 
 The tests are run twice, once with cover disabled and once with cover
 enabled. The reason to have a run without cover is that moka needs to know
-whether a module is cover-compiled, some behaviour changes when moking
+whether a module is cover-compiled, so some behaviour changes when moking
 cover-compiled modules.
 
 At the end of the cover-compiled test run you will see some warnings like these:
@@ -84,13 +84,12 @@ This is because rebar cover compiles everything, runs the tests, and then
 collects the results. However some tests load (or re-load) binaries, without
 restoring the previously loaded version. When rebar tries to collect the results
 for those modules it fails since they are no longer cover-compiled. Most of the
-tests take care of this and restore the previously loaded module, but for some
-it is too much overhead to fix the warning for the actual value that are still
-warning fixing there is too much overhead for the actual. Those modules are
-basically test modules that no other application should use anyway.
+tests take care of this and restore the previously loaded module, but a few of
+them would become too cumbersome, so we decided to live with the warning. Those
+modules are just test modules that no other application should use anyway.
 
-`make check` will run static checks on the code. Currently it just runs some
-predefined xref analysis.
+`make check` runs static checks on the code. Currently, some predefined xref
+analysis and a dialyzer check.
 
 ## Some Words on Cover
 
@@ -170,7 +169,7 @@ moked module, you can restore the old code with
 
 The current status is that moking explicit calls to functions (either local or
 external) *should* work. All the tests pass, including a proper fsm test that
-checks a lot of different call combinations.
+checks a number of different call combinations.
 
 However, Moka is quite young, and little battle-tested, so you should expect
 some quirks, and, of course, lack of functionality. Feedback about desired
