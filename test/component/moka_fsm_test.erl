@@ -423,7 +423,7 @@ replacement_fun(2) -> fun(A, B) -> {moked, [A, B]} end.
 
 add_call_to_history(Func, Args, Res, State) ->
     History = State#state.history,
-    State#state{history = History ++ [{Func, Args, Res}]}.
+    State#state{history = History ++ [{Func, Args, {return, Res}}]}.
 
 %% Add to history those replaced calls that are run when executing FuncSpec
 add_replacements_to_history(FunSpec, Res, State) ->
