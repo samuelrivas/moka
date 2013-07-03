@@ -128,8 +128,8 @@ cleanup_fun() ->
 count_entries_fun(Moka) ->
     fun(_, _) ->
             case lists:reverse(moka:history(Moka)) of
-                []                              -> 0;
-                [{_FunSpec, _Args, Return} | _] -> Return + 1
+                []                                        -> 0;
+                [{_FunSpec, _Args, {return, Return}} | _] -> Return + 1
             end
     end.
 
