@@ -73,7 +73,7 @@ expected_history(ArgsList) -> [history_entry(A, B) || [A, B] <- ArgsList].
 
 history_entry(A, B) ->
     HandlerFun = handler_fun(),
-    {call_description(), [A, B], HandlerFun(A, B)}.
+    {call_description(), [A, B], {return, HandlerFun(A, B)}}.
 
 %%%_* Emacs ============================================================
 %%% Local Variables:
