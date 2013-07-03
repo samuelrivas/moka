@@ -50,14 +50,17 @@
 -opaque moka() :: atom().
 
 -type history_entry() :: {funct_spec(), Args::[any()], Result::result()}.
--type result()        :: Return::any() | {exception, class(), Reason::any()}.
 -type funct_spec()    :: {Module::module(), FunctionName::atom()}.
+-type result()        :: return() | exception().
+-type return()        :: {return, Value::any()}.
+-type exception()     :: {exception, class(), Reason::any()}.
 -type class()         :: throw | exit | error.
 
 -type history()       :: [history_entry()].
 %% History entries are sorted chronologically, oldest first
 
--export_type([moka/0, history/0, history_entry/0]).
+-export_type([moka/0, history/0, history_entry/0, result/0, return/0,
+              exception/0, class/0]).
 
 %%%===================================================================
 %%% API
