@@ -113,17 +113,19 @@ init({CallDescription, Fun, HistoryServer}) ->
 handle_call({get_response, ExceptionTag, Args}, From, State) ->
     proc_lib:spawn_link(
       fun() ->
-              Result =
+              WrappedResult =
                   get_result(
                     ExceptionTag,
                     State#state.reply_fun,
                     Args),
-              moka_history:add_call(
+              add_to_history(
                 State#state.history_server,
                 State#state.call_description,
-                Args, result_to_history(ExceptionTag, Result)),
+                Args,
+                ExceptionTag,
+                WrappedResult),
 
-              gen_server:reply(From, Result)
+              gen_server:reply(From, WrappedResult)
       end),
     {noreply, State};
 handle_call(stop, _From, State) ->
@@ -163,11 +165,14 @@ is_exception(_, _)                                -> false.
 raise_exception({moka_exception, _Tag, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
 
-result_to_history(Tag, Result) ->
-    case is_exception(Tag, Result) of
-        true  -> exception_to_history(Result);
-        false -> Result
+add_to_history(Server, Description, Args, ExceptionTag, WrappedResult) ->
+    case is_exception(ExceptionTag, WrappedResult) of
+        true ->
+            add_exception(Server, Description, Args, WrappedResult);
+        false ->
+            moka_history:add_return(Server, Description, Args, WrappedResult)
     end.
 
-exception_to_history({moka_exception, _Tag, Class, Reason, _Stacktrace}) ->
-    {exception, Class, Reason}.
+add_exception(Server, Description, Args,
+              {moka_exception, _Tag, Class, Reason, _Stacktrace}) ->
+    moka_history:add_exception(Server, Description, Args, Class, Reason).
