@@ -191,13 +191,13 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%%_* Private functions ================================================
 
 start_call_handler(Behaviour, CallDescription, HistoryServer, Count) ->
-    HandlerName = call_handler_name(Count),
+    HandlerName = call_handler_name(CallDescription, Count),
     moka_call_handler:start_link(
       HandlerName, CallDescription, Behaviour, HistoryServer),
     HandlerName.
 
-call_handler_name(Count) ->
-    list_to_atom(lists:flatten(io_lib:format("moka_call_handler_~p", [Count]))).
+call_handler_name({Mod, _}, Count) ->
+    list_to_atom(lists:flatten(io_lib:format("~p_moka_call_handler_~p", [Mod,Count]))).
 
 modify_call_in_code({external, Mod, Funct}, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
