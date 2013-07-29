@@ -26,8 +26,11 @@
 -module(moka_server_tests_aux2).
 
 -export([call_something/0]).
+-export([call_external/0]).
 
 call_something() -> something().
+
+call_external() -> external:something().
 
 something() -> foo.
 
