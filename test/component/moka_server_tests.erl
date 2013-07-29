@@ -48,11 +48,15 @@ concurrent_moka_test_() ->
      fun({_Apps, Moka1, Moka2}) ->
              {inorder,
               [?_test(moka:replace(Moka1, something, fun() -> bar end)),
+               ?_test(moka:replace(Moka1, external, something, fun() -> hoge end)),
                ?_test(moka:replace(Moka2, something, fun() -> baz end)),
+               ?_test(moka:replace(Moka2, external, something, fun() -> piyo end)),
                ?_test(moka:load(Moka1)),
                ?_test(moka:load(Moka2)),
                ?_assertEqual(bar, moka_server_tests_aux1:call_something()),
-               ?_assertEqual(baz, moka_server_tests_aux2:call_something())]}
+               ?_assertEqual(hoge, moka_server_tests_aux1:call_external()),
+               ?_assertEqual(baz, moka_server_tests_aux2:call_something()),
+               ?_assertEqual(piyo, moka_server_tests_aux2:call_external())]}
      end}.
 
 %%%_* Emacs ============================================================

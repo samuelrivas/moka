@@ -144,7 +144,7 @@ safe_handle_call({replace, ReplaceSpec, NewBehaviour}, _From, State) ->
     Description   = make_description(Module, ReplaceSpec),
 
     HandlerName =
-        start_call_handler(NewBehaviour, Description, HistoryServer, Count),
+        start_call_handler(NewBehaviour, {Module, Description}, HistoryServer, Count),
     {arity, Arity} = erlang:fun_info(NewBehaviour, arity),
 
     {reply, ok,
@@ -190,14 +190,14 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %%%_* Private functions ================================================
 
-start_call_handler(Behaviour, CallDescription, HistoryServer, Count) ->
-    HandlerName = call_handler_name(CallDescription, Count),
+start_call_handler(Behaviour, {MokaMod, CallDescription}, HistoryServer, Count) ->
+    HandlerName = call_handler_name(MokaMod, CallDescription, Count),
     moka_call_handler:start_link(
       HandlerName, CallDescription, Behaviour, HistoryServer),
     HandlerName.
 
-call_handler_name({Mod, _}, Count) ->
-    list_to_atom(sel_string:format("~p_moka_call_handler_~p", [Mod, Count])).
+call_handler_name(Moka, {Mod, _}, Count) ->
+    list_to_atom(sel_string:format("~p_~p_moka_call_handler_~p", [Moka, Mod, Count])).
 
 modify_call_in_code({external, Mod, Funct}, Arity, HandlerName, AbsCode) ->
     moka_mod_utils:replace_remote_calls(
