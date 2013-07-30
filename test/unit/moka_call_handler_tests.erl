@@ -38,6 +38,14 @@ normal_return_test_() ->
      [?_assertEqual(0, get_response([0, 1])),
       ?_assertEqual(6, get_response([2, 3]))]}.
 
+tagged_return_test_() ->
+    {setup,
+     fun() -> setup_handler(fun(X) -> X end) end,
+     fun cleanup_handler/1,
+     [?_assertEqual(ok          , get_response([ok])),
+      ?_assertEqual({ok, foo}   , get_response([{ok, foo}])),
+      ?_assertEqual({error, bar}, get_response([{error, bar}]))]}.
+
 throw_test_() ->
     {setup,
      fun() -> setup_handler(fun erlang:throw/1) end,
