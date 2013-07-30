@@ -125,7 +125,7 @@ handle_call({get_response, ExceptionTag, Args}, From, State) ->
                 ExceptionTag,
                 WrappedResult),
 
-              gen_server:reply(From, WrappedResult)
+              gen_server:reply(From, {ok, WrappedResult})
       end),
     {noreply, State};
 handle_call(stop, _From, State) ->
